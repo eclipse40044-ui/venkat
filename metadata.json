@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Yazh Shop - Android 15 Style",
+  "description": "A modern Point of Sale (POS) billing application for Yazh Shop, designed with the clean and intuitive aesthetics of Android 15. It allows users to browse products, add them to a cart, and generate a sales invoice.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
