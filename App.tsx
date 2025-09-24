@@ -10,7 +10,6 @@ import ManagementView from './components/ManagementView';
 import ReportsView from './components/ReportsView';
 import OrdersView from './components/OrdersView';
 import BarcodeScanner from './components/BarcodeScanner';
-import POSMockupView from './components/POSMockupView';
 
 // Custom hook for persisting state to localStorage
 function useLocalStorageState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -33,7 +32,7 @@ function useLocalStorageState<T>(key: string, defaultValue: T): [T, React.Dispat
 
 
 const App: React.FC = () => {
-    const [view, setView] = useState<'pos' | 'manage' | 'reports' | 'orders' | 'mockup'>('pos');
+    const [view, setView] = useState<'pos' | 'manage' | 'reports' | 'orders'>('pos');
     
     // Data management states
     const [products, setProducts] = useLocalStorageState<Product[]>('pos_products', MOCK_PRODUCTS);
@@ -394,8 +393,6 @@ const App: React.FC = () => {
                         onRefund={handleRefundOrder}
                     />
                 );
-            case 'mockup':
-                return <POSMockupView />;
             default:
                 return null;
         }

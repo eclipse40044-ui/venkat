@@ -2,8 +2,8 @@ import React from 'react';
 import { User } from '../types';
 
 interface HeaderProps {
-    view: 'pos' | 'manage' | 'reports' | 'orders' | 'mockup';
-    onSetView: (view: 'pos' | 'manage' | 'reports' | 'orders' | 'mockup') => void;
+    view: 'pos' | 'manage' | 'reports' | 'orders';
+    onSetView: (view: 'pos' | 'manage' | 'reports' | 'orders') => void;
     expiringProductsCount: number;
     currentUser: User;
 }
@@ -43,12 +43,6 @@ const Header: React.FC<HeaderProps> = ({ view, onSetView, expiringProductsCount,
                         className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${view === 'reports' ? 'bg-white shadow-sm text-teal-600' : 'text-slate-600 hover:bg-slate-200'}`}
                     >
                         Reports
-                    </button>
-                    <button
-                        onClick={() => onSetView('mockup')}
-                        className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${view === 'mockup' ? 'bg-white shadow-sm text-teal-600' : 'text-slate-600 hover:bg-slate-200'}`}
-                    >
-                        Mockup
                     </button>
                 </div>
 
@@ -100,12 +94,6 @@ const Header: React.FC<HeaderProps> = ({ view, onSetView, expiringProductsCount,
                         className={`flex-1 text-center py-2 rounded-lg text-sm font-semibold transition-colors ${view === 'reports' ? 'bg-white shadow-sm text-teal-600' : 'text-slate-600'}`}
                     >
                         Reports
-                    </button>
-                     <button
-                        onClick={() => onSetView('mockup')}
-                        className={`flex-1 text-center py-2 rounded-lg text-sm font-semibold transition-colors ${view === 'mockup' ? 'bg-white shadow-sm text-teal-600' : 'text-slate-600'}`}
-                    >
-                        Mockup
                     </button>
                 </div>
         </header>
