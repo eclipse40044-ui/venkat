@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect } from 'react';
 import { CartItem } from '../types';
 
@@ -46,15 +47,15 @@ const CartItemComponent: React.FC<CartItemProps> = ({ item, onUpdateQuantity, on
         <li className="flex items-center gap-4">
             <img src={item.imageUrl} alt={item.name} className="w-16 h-16 rounded-lg object-cover" />
             <div className="flex-grow">
-                <p className="font-semibold text-slate-800">{item.name}</p>
-                <p className="text-sm text-slate-500">
+                <p className="font-semibold text-slate-800 dark:text-slate-100">{item.name}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
                     ${item.price.toFixed(2)}{isWeighted && ` / ${item.unit}`}
                 </p>
                  <div className="flex items-center gap-2 mt-1">
                     {!isWeighted && (
                         <button 
                             onClick={() => onUpdateQuantity(item.id, item.quantity - 1)} 
-                            className="w-6 h-6 rounded-md bg-slate-200 text-slate-600 hover:bg-slate-300 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            className="w-6 h-6 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             aria-label={`Decrease quantity of ${item.name}`}
                         >
                             -
@@ -66,27 +67,27 @@ const CartItemComponent: React.FC<CartItemProps> = ({ item, onUpdateQuantity, on
                         onChange={handleInputChange}
                         onBlur={handleInputBlur}
                         onKeyDown={handleKeyDown}
-                        className="w-12 h-6 text-center rounded-md bg-white border border-slate-300 text-slate-700 focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+                        className="w-12 h-6 text-center rounded-md bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
                         aria-label={`Quantity for ${item.name}`}
                         inputMode={isWeighted ? "decimal" : "numeric"}
                     />
                      {!isWeighted && (
                         <button 
                             onClick={() => onUpdateQuantity(item.id, item.quantity + 1)} 
-                            className="w-6 h-6 rounded-md bg-slate-200 text-slate-600 hover:bg-slate-300 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            className="w-6 h-6 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             aria-label={`Increase quantity of ${item.name}`}
                         >
                             +
                         </button>
                     )}
-                    {isWeighted && <span className="text-sm font-medium text-slate-600">{item.unit}</span>}
+                    {isWeighted && <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{item.unit}</span>}
                 </div>
             </div>
             <div className="flex flex-col items-end">
-                <span className="font-bold text-slate-800">${(item.price * item.quantity).toFixed(2)}</span>
+                <span className="font-bold text-slate-800 dark:text-slate-100">${(item.price * item.quantity).toFixed(2)}</span>
                 <button 
                     onClick={() => onRemoveFromCart(item.id)} 
-                    className="mt-1 text-slate-400 hover:text-red-500"
+                    className="mt-1 text-slate-400 dark:text-slate-500 hover:text-red-500"
                     aria-label={`Remove ${item.name} from cart`}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

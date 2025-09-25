@@ -20,7 +20,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ searchTerm, onSearchChange, onBar
         <div className="mb-6">
             <form onSubmit={handleSubmit} className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <svg className="h-5 w-5 text-slate-400 dark:text-slate-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
                     </svg>
                 </div>
@@ -29,13 +29,13 @@ const SearchBar: React.FC<SearchBarProps> = ({ searchTerm, onSearchChange, onBar
                     placeholder="Search products or scan barcode..."
                     value={searchTerm}
                     onChange={(e) => onSearchChange(e.target.value)}
-                    className="w-full bg-white text-slate-700 py-3 pl-12 pr-14 rounded-full border border-slate-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-shadow duration-200"
+                    className="w-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 py-3 pl-12 pr-14 rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:focus:ring-indigo-400 dark:focus:border-indigo-400 outline-none transition-shadow duration-200"
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                      <button 
                         type="button"
                         onClick={onCameraClick}
-                        className="p-2 rounded-full text-slate-500 hover:bg-slate-100 hover:text-teal-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors"
+                        className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-indigo-500 transition-colors"
                         aria-label="Scan barcode with camera"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">

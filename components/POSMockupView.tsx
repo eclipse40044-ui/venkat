@@ -32,7 +32,7 @@ const POSMockupView: React.FC = () => {
                          <h2 className="text-2xl font-bold text-slate-800">Products</h2>
                          <div className="hidden sm:flex items-center gap-2">
                             {['All', 'Produce', 'Dairy', 'Bakery'].map(cat => (
-                                <button key={cat} className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${cat === 'All' ? 'bg-teal-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                                <button key={cat} className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${cat === 'All' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                                     {cat}
                                 </button>
                             ))}
@@ -41,7 +41,7 @@ const POSMockupView: React.FC = () => {
                     <div className="flex-grow overflow-y-auto pr-2 -mr-2">
                         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                             {mockProducts.map((p, index) => (
-                                <div key={index} className="bg-slate-50 rounded-lg p-3 text-center flex flex-col items-center justify-between cursor-pointer border-2 border-transparent hover:border-teal-500 transition-all shadow-sm hover:shadow-md">
+                                <div key={index} className="bg-slate-50 rounded-lg p-3 text-center flex flex-col items-center justify-between cursor-pointer border-2 border-transparent hover:border-indigo-500 transition-all shadow-sm hover:shadow-md">
                                     <img src={p.img} alt={p.name} className="w-24 h-24 object-cover rounded-md mb-2" />
                                     <p className="font-semibold text-sm text-slate-700 leading-tight flex-grow">{p.name}</p>
                                     <p className="text-xs text-slate-500 mt-1">{p.price}</p>
@@ -49,7 +49,7 @@ const POSMockupView: React.FC = () => {
                             ))}
                              {/* Add more for scrolling effect */}
                              {mockProducts.map((p, index) => (
-                                <div key={p.name + index} className="bg-slate-50 rounded-lg p-3 text-center flex flex-col items-center justify-between cursor-pointer border-2 border-transparent hover:border-teal-500 transition-all shadow-sm hover:shadow-md">
+                                <div key={p.name + index} className="bg-slate-50 rounded-lg p-3 text-center flex flex-col items-center justify-between cursor-pointer border-2 border-transparent hover:border-indigo-500 transition-all shadow-sm hover:shadow-md">
                                     <img src={p.img + 'a'} alt={p.name} className="w-24 h-24 object-cover rounded-md mb-2" />
                                     <p className="font-semibold text-sm text-slate-700 leading-tight flex-grow">{p.name}</p>
                                     <p className="text-xs text-slate-500 mt-1">{p.price}</p>
@@ -92,7 +92,7 @@ const POSMockupView: React.FC = () => {
                     </div>
                     
                     <div className="flex-shrink-0 mt-6 grid grid-cols-2 gap-3">
-                        <button className="col-span-2 p-4 bg-teal-600 text-white rounded-lg text-lg font-bold hover:bg-teal-700 transition-colors flex items-center justify-center gap-2 shadow-lg hover:shadow-xl">
+                        <button className="col-span-2 p-4 bg-indigo-600 text-white rounded-lg text-lg font-bold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 shadow-lg hover:shadow-xl">
                              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                             Pay Now
                         </button>
@@ -101,7 +101,7 @@ const POSMockupView: React.FC = () => {
                             Cash
                          </button>
                          <button className="p-4 bg-white text-slate-700 rounded-lg font-semibold border border-slate-300 hover:bg-slate-50 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
-                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10v11h18V10M3 7v3h18V7L12 3 3 7z" /></svg>
+                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10v11h18V10M3 7v3h18V7L12 3 3 7z" /></svg>
                              G pay
                          </button>
                     </div>

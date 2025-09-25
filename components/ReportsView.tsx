@@ -10,14 +10,15 @@ interface ReportsViewProps {
 
 type DateRange = 'month' | '30days' | 'all';
 
-const SummaryCard: React.FC<{ title: string; value: string; icon: JSX.Element }> = ({ title, value, icon }) => (
-    <div className="bg-white p-6 rounded-2xl shadow-md flex items-center gap-4 transition-all hover:shadow-lg hover:-translate-y-1">
-        <div className="bg-teal-100 text-teal-600 p-3 rounded-full">
+// FIX: Changed JSX.Element to React.JSX.Element to resolve "Cannot find namespace 'JSX'" error.
+const SummaryCard: React.FC<{ title: string; value: string; icon: React.JSX.Element }> = ({ title, value, icon }) => (
+    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-md flex items-center gap-4 transition-all hover:shadow-lg dark:hover:shadow-black/25 hover:-translate-y-1">
+        <div className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 p-3 rounded-full">
             {icon}
         </div>
         <div>
-            <p className="text-slate-500 text-sm font-medium">{title}</p>
-            <p className="text-3xl font-bold text-slate-800">{value}</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">{title}</p>
+            <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{value}</p>
         </div>
     </div>
 );
@@ -83,18 +84,23 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories 
     }, [filteredOrders]);
 
     const topSellingProducts = useMemo(() => {
-        const productCounts = new Map<string, number>();
+        const productStats = new Map<string, { quantity: number; sales: number }>();
         filteredOrders.forEach(order => {
             order.items.forEach(item => {
-                productCounts.set(item.id, (productCounts.get(item.id) || 0) + item.quantity);
+                const stats = productStats.get(item.id) || { quantity: 0, sales: 0 };
+                stats.quantity += item.quantity;
+                stats.sales += item.quantity * item.price;
+                productStats.set(item.id, stats);
             });
         });
-        return Array.from(productCounts.entries())
-            .sort(([, qtyA], [, qtyB]) => qtyB - qtyA)
+        return Array.from(productStats.entries())
+            .sort(([, statsA], [, statsB]) => statsB.quantity - statsA.quantity) // sort by quantity sold
             .slice(0, 10)
-            .map(([id, quantity]) => ({
+            .map(([id, stats], index) => ({
+                rank: index + 1,
                 name: productMap.get(id)?.name || 'Unknown Product',
-                quantity,
+                quantity: stats.quantity,
+                sales: stats.sales,
             }));
     }, [filteredOrders, productMap]);
 
@@ -120,44 +126,44 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories 
         return Array.from(paymentCounts.entries()).map(([name, value]) => ({ name, value }));
     }, [filteredOrders]);
     
-    const PIE_COLORS = ['#0d9488', '#8b5cf6', '#ec4899', '#f97316', '#10b981'];
+    const PIE_COLORS = ['#4f46e5', '#8b5cf6', '#ec4899', '#f97316', '#10b981'];
 
     if (orders.length === 0) {
         return (
             <main className="container mx-auto p-8 text-center flex-grow flex flex-col justify-center items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-24 w-24 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                <h2 className="mt-4 text-2xl font-bold text-slate-700">No Sales Data Available</h2>
-                <p className="text-slate-500 mt-2">Once you start making sales, your reports will appear here.</p>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-24 w-24 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                <h2 className="mt-4 text-2xl font-bold text-slate-700 dark:text-slate-200">No Sales Data Available</h2>
+                <p className="text-slate-500 dark:text-slate-400 mt-2">Once you start making sales, your reports will appear here.</p>
             </main>
         );
     }
 
     return (
         <main className="container mx-auto p-4 md:p-6 lg:p-8">
-            <h2 className="text-3xl font-bold text-slate-800 mb-8">Sales Reports</h2>
+            <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100 mb-8">Sales Reports</h2>
 
             {/* Daily Sales Section */}
-            <div className="bg-white p-6 rounded-2xl shadow-md mb-8">
-                <h3 className="text-lg font-semibold text-slate-800 mb-4">Today's Sales Summary ({new Date().toLocaleDateString()})</h3>
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-md mb-8">
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Today's Sales Summary ({new Date().toLocaleDateString()})</h3>
                 {dailySalesData.orders.length === 0 ? (
-                    <p className="text-slate-500 text-center py-8">No sales yet today.</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-center py-8">No sales yet today.</p>
                 ) : (
                     <div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                            <div className="bg-slate-50 p-4 rounded-lg">
-                                <p className="text-slate-500 text-sm font-medium">Today's Revenue</p>
-                                <p className="text-2xl font-bold text-slate-800">${dailySalesData.totalRevenue.toFixed(2)}</p>
+                            <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
+                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Today's Revenue</p>
+                                <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">${dailySalesData.totalRevenue.toFixed(2)}</p>
                             </div>
-                            <div className="bg-slate-50 p-4 rounded-lg">
-                                <p className="text-slate-500 text-sm font-medium">Today's Orders</p>
-                                <p className="text-2xl font-bold text-slate-800">{dailySalesData.totalOrders}</p>
+                            <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
+                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Today's Orders</p>
+                                <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{dailySalesData.totalOrders}</p>
                             </div>
                         </div>
                         
-                        <h4 className="font-semibold text-slate-700 mb-2">Today's Transactions</h4>
+                        <h4 className="font-semibold text-slate-700 dark:text-slate-200 mb-2">Today's Transactions</h4>
                         <div className="max-h-60 overflow-y-auto">
-                            <table className="w-full text-sm text-left text-slate-500">
-                                <thead className="text-xs text-slate-700 uppercase bg-slate-100 sticky top-0">
+                            <table className="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                                <thead className="text-xs text-slate-700 dark:text-slate-300 uppercase bg-slate-100 dark:bg-slate-700 sticky top-0">
                                     <tr>
                                         <th scope="col" className="px-4 py-2">Order ID</th>
                                         <th scope="col" className="px-4 py-2">Time</th>
@@ -167,8 +173,8 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories 
                                 </thead>
                                 <tbody>
                                     {dailySalesData.orders.map(order => (
-                                        <tr key={order.id} className="bg-white border-b hover:bg-slate-50">
-                                            <td className="px-4 py-2 font-medium text-slate-900">{order.id}</td>
+                                        <tr key={order.id} className="bg-white dark:bg-slate-800 border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">
+                                            <td className="px-4 py-2 font-medium text-slate-900 dark:text-slate-100">{order.id}</td>
                                             <td className="px-4 py-2">{new Date(order.date).toLocaleTimeString()}</td>
                                             <td className="px-4 py-2">{order.items.length}</td>
                                             <td className="px-4 py-2 text-right font-semibold">${order.total.toFixed(2)}</td>
@@ -182,10 +188,10 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories 
             </div>
 
             <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
-                <h3 className="text-2xl font-bold text-slate-800">Historical Analysis</h3>
-                <div className="flex items-center gap-2 bg-slate-200 p-1 rounded-full">
+                <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Historical Analysis</h3>
+                <div className="flex items-center gap-2 bg-slate-200 dark:bg-slate-700 p-1 rounded-full">
                     {(['month', '30days', 'all'] as const).map(range => (
-                        <button key={range} onClick={() => setDateRange(range)} className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${dateRange === range ? 'bg-white shadow-sm text-teal-600' : 'text-slate-600 hover:bg-slate-300'}`}>
+                        <button key={range} onClick={() => setDateRange(range)} className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${dateRange === range ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}>
                             {range === 'month' ? 'This Month' : range === '30days' ? 'Last 30 Days' : 'All Time'}
                         </button>
                     ))}
@@ -193,10 +199,10 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories 
             </div>
 
             {filteredOrders.length === 0 ? (
-                <div className="text-center py-20 bg-white rounded-2xl shadow-md">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-16 w-16 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" /></svg>
-                    <h3 className="mt-4 text-xl font-semibold text-slate-700">No Data For This Period</h3>
-                    <p className="mt-2 text-slate-500">Try selecting a different date range.</p>
+                <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-2xl shadow-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-16 w-16 text-slate-400 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" /></svg>
+                    <h3 className="mt-4 text-xl font-semibold text-slate-700 dark:text-slate-200">No Data For This Period</h3>
+                    <p className="mt-2 text-slate-500 dark:text-slate-400">Try selecting a different date range.</p>
                 </div>
             ) : (
                 <div className="space-y-6">
@@ -207,56 +213,69 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories 
                         <SummaryCard title="Avg. Order Value" value={`$${summaryData.avgOrderValue.toFixed(2)}`} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>} />
                     </div>
                     
-                    <div className="bg-white p-6 rounded-2xl shadow-md">
-                        <h3 className="text-lg font-semibold text-slate-800 mb-4">Sales Trend</h3>
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-md">
+                        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Sales Trend</h3>
                         <ResponsiveContainer width="100%" height={300}>
                             <LineChart data={salesByDateData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#64748b" />
-                                <YAxis tick={{ fontSize: 12 }} stroke="#64748b" tickFormatter={(value) => `$${value}`} />
-                                <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
-                                <Legend />
-                                <Line type="monotone" dataKey="sales" stroke="#0d9488" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" className="dark:stroke-slate-700" />
+                                <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'rgb(100 116 139)' }} stroke="#64748b" className="dark:stroke-slate-500 dark:tick-fill-slate-400" />
+                                <YAxis tick={{ fontSize: 12, fill: 'rgb(100 116 139)' }} stroke="#64748b" tickFormatter={(value) => `$${value}`} className="dark:stroke-slate-500 dark:tick-fill-slate-400" />
+                                <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0' }} wrapperClassName="dark:!bg-slate-700 dark:!border-slate-600" formatter={(value: number) => `$${value.toFixed(2)}`} />
+                                <Legend wrapperStyle={{fontSize: "12px"}}/>
+                                <Line type="monotone" dataKey="sales" stroke="#4f46e5" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md">
-                            <h3 className="text-lg font-semibold text-slate-800 mb-4">Top 10 Selling Products</h3>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={topSellingProducts} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                    <XAxis type="number" hide />
-                                    <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 12 }} stroke="#64748b" interval={0} />
-                                    <Tooltip />
-                                    <Bar dataKey="quantity" fill="#0d9488" barSize={20} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                        <div className="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-md">
+                            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Top 10 Selling Products</h3>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                                    <thead className="text-xs text-slate-700 dark:text-slate-300 uppercase bg-slate-50 dark:bg-slate-700/50">
+                                        <tr>
+                                            <th scope="col" className="px-4 py-3 text-center">Rank</th>
+                                            <th scope="col" className="px-4 py-3">Product Name</th>
+                                            <th scope="col" className="px-4 py-3 text-right">Qty Sold</th>
+                                            <th scope="col" className="px-4 py-3 text-right">Sales</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {topSellingProducts.map(p => (
+                                            <tr key={p.rank} className="bg-white dark:bg-slate-800 border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">
+                                                <td className="px-4 py-4 text-center font-medium text-slate-900 dark:text-slate-100">{p.rank}</td>
+                                                <th scope="row" className="px-4 py-4 font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">{p.name}</th>
+                                                <td className="px-4 py-4 text-right">{p.quantity.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}</td>
+                                                <td className="px-4 py-4 text-right font-semibold">${p.sales.toFixed(2)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-6">
-                             <div className="bg-white p-6 rounded-2xl shadow-md">
-                                <h3 className="text-lg font-semibold text-slate-800 mb-4">Category-wise Sales</h3>
+                             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-md">
+                                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Category-wise Sales</h3>
                                 <ResponsiveContainer width="100%" height={300}>
                                     <PieChart>
                                         <Pie data={categorySalesData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} fill="#8884d8">
                                             {categorySalesData.map((entry, index) => <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />)}
                                         </Pie>
-                                        <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                                        <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0' }} wrapperClassName="dark:!bg-slate-700 dark:!border-slate-600" formatter={(value: number) => `$${value.toFixed(2)}`} />
                                         <Legend wrapperStyle={{fontSize: "12px"}}/>
                                     </PieChart>
                                 </ResponsiveContainer>
                             </div>
                             
-                            <div className="bg-white p-6 rounded-2xl shadow-md">
-                                <h3 className="text-lg font-semibold text-slate-800 mb-4">Payment Methods</h3>
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-md">
+                                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Payment Methods</h3>
                                 <ResponsiveContainer width="100%" height={300}>
                                     <PieChart>
                                         <Pie data={paymentMethodsData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} fill="#82ca9d">
                                             {paymentMethodsData.map((entry, index) => <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />)}
                                         </Pie>
-                                        <Tooltip />
+                                        <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0' }} wrapperClassName="dark:!bg-slate-700 dark:!border-slate-600" />
                                         <Legend wrapperStyle={{fontSize: "12px"}}/>
                                     </PieChart>
                                 </ResponsiveContainer>

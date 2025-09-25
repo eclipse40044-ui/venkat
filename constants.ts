@@ -1,4 +1,6 @@
-import { Product, Category, Supplier, Customer, StoreSettings, User, Discount } from './types';
+import { Product, Category, Supplier, Customer, StoreSettings, User, Discount, CartLabels, ActivityLog } from './types';
+
+export const PIN_LENGTH = 4;
 
 export const MOCK_CATEGORIES: Category[] = [
   { id: 'cat-001', name: 'Dairy' },
@@ -35,9 +37,9 @@ export const MOCK_PRODUCTS: Product[] = [
 ];
 
 export const MOCK_USERS: User[] = [
-    { id: 'user-001', name: 'Admin User', role: 'Admin' },
-    { id: 'user-002', name: 'Manager Mike', role: 'Manager' },
-    { id: 'user-003', name: 'Cashier Chloe', role: 'Cashier' },
+    { id: 'user-001', name: 'Admin User', role: 'Admin', pin: '1111' },
+    { id: 'user-002', name: 'Manager Mike', role: 'Manager', pin: '2222' },
+    { id: 'user-003', name: 'Cashier Chloe', role: 'Cashier', pin: '3333' },
 ];
 
 
@@ -57,3 +59,33 @@ export const MOCK_DISCOUNTS: Discount[] = [
     { id: 'disc-002', name: 'Holiday Special', type: 'fixed', value: 5 },
     { id: 'disc-003', name: 'Clearance', type: 'percentage', value: 20 },
 ];
+
+export const MOCK_CART_LABELS: CartLabels = {
+    subtotal: 'Subtotal',
+    discount: 'Discount',
+    tax: 'Tax ({rate}%)',
+    total: 'Total',
+};
+
+export const MOCK_ACTIVITY_LOGS: ActivityLog[] = [];
+
+export const ROLE_PERMISSIONS: Record<User['role'], string[]> = {
+    Admin: [
+        'Full access to all application features.',
+        'Can manage products, users, and settings.',
+        'Can view all reports and the activity log.',
+        'Can process refunds.'
+    ],
+    Manager: [
+        'Access to POS, Orders, Management, and Reports.',
+        'Can manage products, categories, suppliers, etc.',
+        'Can process refunds.',
+        'Cannot manage users or view the activity log.'
+    ],
+    Cashier: [
+        'Access limited to POS, Orders, and Reports.',
+        'Can process sales and view past orders.',
+        'Cannot access management settings.',
+        'Cannot process refunds.'
+    ]
+};

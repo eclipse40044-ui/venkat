@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Product, CartItem, Order, Category, Supplier, Customer, StoreSettings, User, Discount } from './types';
-import { MOCK_PRODUCTS, MOCK_CATEGORIES, MOCK_SUPPLIERS, MOCK_CUSTOMERS, MOCK_STORE_SETTINGS, MOCK_USERS, MOCK_DISCOUNTS } from './constants';
+import { Product, CartItem, Order, Category, Supplier, Customer, StoreSettings, User, Discount, CartLabels, ActivityLog } from './types';
+import { MOCK_PRODUCTS, MOCK_CATEGORIES, MOCK_SUPPLIERS, MOCK_CUSTOMERS, MOCK_STORE_SETTINGS, MOCK_USERS, MOCK_DISCOUNTS, MOCK_CART_LABELS, MOCK_ACTIVITY_LOGS } from './constants';
 import Header from './components/Header';
 import ProductList from './components/ProductList';
 import Cart from './components/Cart';
@@ -10,6 +10,7 @@ import ManagementView from './components/ManagementView';
 import ReportsView from './components/ReportsView';
 import OrdersView from './components/OrdersView';
 import BarcodeScanner from './components/BarcodeScanner';
+import LoginScreen from './components/LoginScreen';
 
 // Custom hook for persisting state to localStorage
 function useLocalStorageState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -43,19 +44,56 @@ const App: React.FC = () => {
     const [orderHistory, setOrderHistory] = useLocalStorageState<Order[]>('supermarket_pos_orders', []);
     const [users, setUsers] = useLocalStorageState<User[]>('pos_users', MOCK_USERS);
     const [discounts, setDiscounts] = useLocalStorageState<Discount[]>('pos_discounts', MOCK_DISCOUNTS);
+    const [activityLogs, setActivityLogs] = useLocalStorageState<ActivityLog[]>('pos_activity_logs', MOCK_ACTIVITY_LOGS);
+    const [theme, setTheme] = useLocalStorageState<'light' | 'dark'>('pos_theme', 'light');
+    const [cartLabels, setCartLabels] = useLocalStorageState<CartLabels>('pos_cart_labels', MOCK_CART_LABELS);
 
     // App state
-    const [currentUser] = useState<User>(MOCK_USERS[0]); // Simulate logged in user (Admin)
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
     
     // POS-specific states
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedCustomerId, setSelectedCustomerId] = useState<string>('walk-in');
     const [appliedDiscountId, setAppliedDiscountId] = useState<string>('');
+    const [walkInCustomerPhone, setWalkInCustomerPhone] = useState('');
     const [showInvoice, setShowInvoice] = useState(false);
     const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
     const [barcodeError, setBarcodeError] = useState<string | null>(null);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+    useEffect(() => {
+        if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, [theme]);
+
+    const logActivity = (action: string, details?: string) => {
+        if (!currentUser) return;
+        const newLog: ActivityLog = {
+            id: `log-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            userId: currentUser.id,
+            action,
+            details,
+        };
+        setActivityLogs(prev => [newLog, ...prev]);
+    };
+
+    const handleLoginSuccess = (user: User) => {
+        setCurrentUser(user);
+        logActivity('LOGIN');
+        setView('pos'); // Default to POS view on login
+    };
+
+    const handleLogout = () => {
+        setCurrentUser(null);
+    };
+
+    const handleToggleTheme = () => {
+        setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+    };
 
     const handleAddToCart = (product: Product) => {
         const itemInCart = cartItems.find(item => item.id === product.id);
@@ -131,7 +169,7 @@ const App: React.FC = () => {
     };
 
     const handleCheckout = (paymentMethod: string) => {
-        if (cartItems.length > 0) {
+        if (cartItems.length > 0 && currentUser) {
             const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
             
             let discountAmount = 0;
@@ -152,7 +190,10 @@ const App: React.FC = () => {
             const totalAfterDiscount = subtotal - discountAmount;
             const taxAmount = totalAfterDiscount * storeSettings.taxRate;
             const total = totalAfterDiscount + taxAmount;
-            const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
+            
+            const customerDetails: Customer | undefined = walkInCustomerPhone.trim()
+                ? { id: 'walk-in', name: 'Walk-in Customer', phone: walkInCustomerPhone.trim(), email: '' }
+                : undefined;
 
             const order: Order = {
                 id: `INV-${Date.now().toString().slice(-6)}`,
@@ -162,7 +203,7 @@ const App: React.FC = () => {
                 taxAmount,
                 total,
                 paymentMethod,
-                customer: selectedCustomer,
+                customer: customerDetails,
                 userId: currentUser.id,
                 status: 'completed',
                 appliedDiscount,
@@ -174,15 +215,16 @@ const App: React.FC = () => {
     
     const handleClearCart = () => {
         setCartItems([]);
-        setSelectedCustomerId('walk-in');
         setAppliedDiscountId('');
+        setWalkInCustomerPhone('');
     };
 
     const handleCloseInvoice = () => {
         if (currentOrder && currentOrder.status === 'completed') {
             const orderExists = orderHistory.some(o => o.id === currentOrder.id);
             if (!orderExists) {
-                setOrderHistory(prev => [...prev, currentOrder]);
+                setOrderHistory(prev => [currentOrder, ...prev]);
+                 logActivity('SALE', `Order ID: ${currentOrder.id}, Total: $${currentOrder.total.toFixed(2)}`);
                 // Decrease stock only when the sale is first completed
                 setProducts(prevProducts => {
                     const newProducts = [...prevProducts];
@@ -217,74 +259,103 @@ const App: React.FC = () => {
 
     // CRUD Handlers
     const handleSaveProduct = (productToSave: Product) => {
+        const isNew = !products.some(p => p.id === productToSave.id);
         setProducts(prev => {
-            const exists = prev.some(p => p.id === productToSave.id);
-            if(exists) {
-                return prev.map(p => p.id === productToSave.id ? productToSave : p);
+            if(isNew) {
+                return [productToSave, ...prev];
             }
-            return [...prev, productToSave];
+            return prev.map(p => p.id === productToSave.id ? productToSave : p);
         });
+        logActivity(isNew ? 'CREATE_PRODUCT' : 'UPDATE_PRODUCT', `Name: ${productToSave.name}`);
     };
     const handleDeleteProduct = (productId: string) => {
+        const productName = products.find(p => p.id === productId)?.name;
         setProducts(prev => prev.filter(p => p.id !== productId));
+        logActivity('DELETE_PRODUCT', `ID: ${productId}, Name: ${productName}`);
     };
 
     const handleSaveCategory = (categoryToSave: Category) => {
+        const isNew = !categories.some(c => c.id === categoryToSave.id);
         setCategories(prev => {
-             const exists = prev.some(c => c.id === categoryToSave.id);
-            if(exists) {
-                return prev.map(c => c.id === categoryToSave.id ? categoryToSave : c);
+             if(isNew) {
+                return [categoryToSave, ...prev];
             }
-            return [...prev, categoryToSave];
+            return prev.map(c => c.id === categoryToSave.id ? categoryToSave : c);
         })
+        logActivity(isNew ? 'CREATE_CATEGORY' : 'UPDATE_CATEGORY', `Name: ${categoryToSave.name}`);
     }
     const handleDeleteCategory = (categoryId: string) => {
+        const categoryName = categories.find(c => c.id === categoryId)?.name;
         setCategories(prev => prev.filter(c => c.id !== categoryId));
+        logActivity('DELETE_CATEGORY', `ID: ${categoryId}, Name: ${categoryName}`);
     }
     
     const handleSaveSupplier = (supplierToSave: Supplier) => {
+        const isNew = !suppliers.some(s => s.id === supplierToSave.id);
          setSuppliers(prev => {
-             const exists = prev.some(s => s.id === supplierToSave.id);
-            if(exists) {
-                return prev.map(s => s.id === supplierToSave.id ? supplierToSave : s);
+            if(isNew) {
+                return [supplierToSave, ...prev];
             }
-            return [...prev, supplierToSave];
+            return prev.map(s => s.id === supplierToSave.id ? supplierToSave : s);
         })
+        logActivity(isNew ? 'CREATE_SUPPLIER' : 'UPDATE_SUPPLIER', `Name: ${supplierToSave.name}`);
     }
     const handleDeleteSupplier = (supplierId: string) => {
+        const supplierName = suppliers.find(s => s.id === supplierId)?.name;
         setSuppliers(prev => prev.filter(s => s.id !== supplierId));
+        logActivity('DELETE_SUPPLIER', `ID: ${supplierId}, Name: ${supplierName}`);
     }
     
     const handleSaveCustomer = (customerToSave: Customer) => {
+        const isNew = !customers.some(c => c.id === customerToSave.id);
         setCustomers(prev => {
-            const exists = prev.some(c => c.id === customerToSave.id);
-            if (exists) {
-                return prev.map(c => c.id === customerToSave.id ? customerToSave : c);
+            if (isNew) {
+                return [customerToSave, ...prev];
             }
-            return [...prev, customerToSave];
+            return prev.map(c => c.id === customerToSave.id ? customerToSave : c);
         });
+        logActivity(isNew ? 'CREATE_CUSTOMER' : 'UPDATE_CUSTOMER', `Name: ${customerToSave.name}`);
     };
 
     const handleDeleteCustomer = (customerId: string) => {
+        const customerName = customers.find(c => c.id === customerId)?.name;
         setCustomers(prev => prev.filter(c => c.id !== customerId));
+        logActivity('DELETE_CUSTOMER', `ID: ${customerId}, Name: ${customerName}`);
     };
     
     const handleSaveStoreSettings = (settings: StoreSettings) => {
         setStoreSettings(settings);
+        logActivity('UPDATE_SETTINGS', `Store Name: ${settings.storeName}`);
     };
 
     const handleSaveDiscount = (discountToSave: Discount) => {
+        const isNew = !discounts.some(d => d.id === discountToSave.id);
         setDiscounts(prev => {
-            const exists = prev.some(d => d.id === discountToSave.id);
-            if (exists) {
-                return prev.map(d => d.id === discountToSave.id ? discountToSave : d);
+            if (isNew) {
+                return [discountToSave, ...prev];
             }
-            return [...prev, discountToSave];
+            return prev.map(d => d.id === discountToSave.id ? discountToSave : d);
         });
+        logActivity(isNew ? 'CREATE_DISCOUNT' : 'UPDATE_DISCOUNT', `Name: ${discountToSave.name}`);
     };
 
     const handleDeleteDiscount = (discountId: string) => {
+        const discountName = discounts.find(d => d.id === discountId)?.name;
         setDiscounts(prev => prev.filter(d => d.id !== discountId));
+        logActivity('DELETE_DISCOUNT', `ID: ${discountId}, Name: ${discountName}`);
+    };
+
+    const handleSaveCartLabels = (labels: CartLabels) => {
+        setCartLabels(labels);
+    };
+
+    const handleUpdateUserPin = (userId: string, newPin: string) => {
+        const user = users.find(u => u.id === userId);
+        if (user) {
+            setUsers(prevUsers => prevUsers.map(u => (u.id === userId ? { ...u, pin: newPin } : u)));
+            logActivity('UPDATE_USER_PIN', `PIN changed for user: ${user.name}`);
+            alert(`PIN for ${user.name} has been updated successfully.`);
+        }
     };
 
     const handleRefundOrder = (orderId: string) => {
@@ -298,6 +369,7 @@ const App: React.FC = () => {
         setOrderHistory(prev =>
             prev.map(o => (o.id === orderId ? { ...o, status: 'refunded' } : o))
         );
+         logActivity('REFUND', `Order ID: ${orderId}`);
 
         // 2. Return items to stock
         setProducts(prevProducts => {
@@ -319,6 +391,10 @@ const App: React.FC = () => {
     };
 
     const renderView = () => {
+        if (!currentUser) {
+            return <LoginScreen users={users} onLoginSuccess={handleLoginSuccess} />;
+        }
+        
         switch (view) {
             case 'pos':
                 return (
@@ -337,17 +413,18 @@ const App: React.FC = () => {
                             <aside>
                                 <Cart
                                     cartItems={cartItems}
-                                    customers={customers}
-                                    selectedCustomerId={selectedCustomerId}
-                                    onSelectCustomer={setSelectedCustomerId}
                                     taxRate={storeSettings.taxRate}
                                     discounts={discounts}
                                     appliedDiscountId={appliedDiscountId}
                                     onApplyDiscount={setAppliedDiscountId}
+                                    cartLabels={cartLabels}
+                                    onSaveLabels={handleSaveCartLabels}
                                     onUpdateQuantity={handleUpdateQuantity}
                                     onRemoveFromCart={handleRemoveFromCart}
                                     onCheckout={handleCheckout}
                                     onClearCart={handleClearCart}
+                                    walkInCustomerPhone={walkInCustomerPhone}
+                                    onPhoneChange={setWalkInCustomerPhone}
                                 />
                             </aside>
                         </div>
@@ -356,12 +433,15 @@ const App: React.FC = () => {
             case 'manage':
                  return (
                     <ManagementView
+                        currentUser={currentUser}
                         products={products}
                         categories={categories}
                         suppliers={suppliers}
                         customers={customers}
                         discounts={discounts}
                         storeSettings={storeSettings}
+                        activityLogs={activityLogs}
+                        users={users}
                         onSaveProduct={handleSaveProduct}
                         onDeleteProduct={handleDeleteProduct}
                         onSaveCategory={handleSaveCategory}
@@ -373,6 +453,7 @@ const App: React.FC = () => {
                         onSaveStoreSettings={handleSaveStoreSettings}
                         onSaveDiscount={handleSaveDiscount}
                         onDeleteDiscount={handleDeleteDiscount}
+                        onUpdateUserPin={handleUpdateUserPin}
                     />
                 );
             case 'reports':
@@ -399,13 +480,20 @@ const App: React.FC = () => {
     }
 
 
+    if (!currentUser) {
+        return <LoginScreen users={users} onLoginSuccess={handleLoginSuccess} />;
+    }
+
     return (
-        <div className="min-h-screen bg-slate-100/50">
+        <div className="min-h-screen bg-slate-100/50 dark:bg-slate-950">
             <Header
                 view={view}
                 onSetView={setView}
                 expiringProductsCount={expiringProductsCount}
                 currentUser={currentUser}
+                onLogout={handleLogout}
+                theme={theme}
+                onToggleTheme={handleToggleTheme}
             />
            
             {renderView()}

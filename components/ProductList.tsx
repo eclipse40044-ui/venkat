@@ -15,7 +15,7 @@ const ProductItem: React.FC<ProductItemProps> = ({ product, onAddToCart, cartQua
     const canAddToCart = product.unit === 'lb' ? product.stock > 0 : product.stock > cartQuantity;
 
     return (
-        <div className={`bg-white rounded-2xl shadow-md overflow-hidden transition-all duration-300 flex flex-col ${isOutOfStock ? 'opacity-50' : 'hover:shadow-xl hover:-translate-y-1'}`}>
+        <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-md dark:shadow-black/20 overflow-hidden transition-all duration-300 flex flex-col ${isOutOfStock ? 'opacity-50' : 'hover:shadow-xl dark:hover:shadow-black/30 hover:-translate-y-1'}`}>
             <div className="relative">
                 <img src={product.imageUrl} alt={product.name} className={`w-full h-40 object-cover ${isOutOfStock ? 'grayscale' : ''}`} />
                 {isOutOfStock && (
@@ -30,14 +30,14 @@ const ProductItem: React.FC<ProductItemProps> = ({ product, onAddToCart, cartQua
                 )}
             </div>
             <div className="p-4 flex flex-col flex-grow">
-                <h3 className="font-semibold text-lg text-slate-800 mb-1 flex-grow">{product.name}</h3>
-                <p className="text-sm text-slate-500 mb-2">{product.stock} in stock</p>
+                <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-100 mb-1 flex-grow">{product.name}</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">{product.stock} in stock</p>
                 <div className="flex justify-between items-center mt-auto">
-                    <span className="text-xl font-bold text-slate-900">${product.price.toFixed(2)}{product.unit === 'lb' ? '/lb' : ''}</span>
+                    <span className="text-xl font-bold text-slate-900 dark:text-white">${product.price.toFixed(2)}{product.unit === 'lb' ? '/lb' : ''}</span>
                     <button 
                         onClick={() => onAddToCart(product)}
                         disabled={!canAddToCart || isOutOfStock}
-                        className="bg-teal-600 text-white rounded-full p-2 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
+                        className="bg-indigo-600 text-white rounded-full p-2 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors disabled:bg-slate-300 dark:disabled:bg-slate-600 disabled:cursor-not-allowed"
                         aria-label={`Add ${product.name} to cart`}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -59,13 +59,13 @@ interface ProductListProps {
 const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, cartItems }) => {
     if (products.length === 0) {
         return (
-            <div className="text-center py-20 bg-white rounded-2xl shadow-md">
-                <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-16 w-16 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1">
+            <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-2xl shadow-md">
+                <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-16 w-16 text-slate-400 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.27,3.27L20.73,20.73" />
                 </svg>
-                <h3 className="mt-4 text-xl font-semibold text-slate-700">No Products Found</h3>
-                <p className="mt-2 text-slate-500">Your search did not match any products.</p>
+                <h3 className="mt-4 text-xl font-semibold text-slate-700 dark:text-slate-200">No Products Found</h3>
+                <p className="mt-2 text-slate-500 dark:text-slate-400">Your search did not match any products.</p>
             </div>
         );
     }

@@ -46,6 +46,7 @@ export interface User {
   id: string;
   name: string;
   role: 'Admin' | 'Manager' | 'Cashier';
+  pin: string; // N-digit PIN
 }
 
 export interface Discount {
@@ -70,4 +71,19 @@ export interface Order {
       name: string;
       amount: number;
   };
+}
+
+export interface CartLabels {
+  subtotal: string;
+  discount: string;
+  tax: string; // Can include placeholder e.g., "Tax ({rate}%)"
+  total: string;
+}
+
+export interface ActivityLog {
+  id: string;
+  timestamp: string; // ISO string
+  userId: string;
+  action: string;
+  details?: string;
 }
