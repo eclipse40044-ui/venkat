@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Product, Category, Supplier, Customer, StoreSettings, Discount, User, ActivityLog } from '../types';
 import { ROLE_PERMISSIONS } from '../constants';
 import ProductFormModal from './ProductFormModal';
@@ -33,13 +33,16 @@ interface ManagementViewProps {
     onDeleteDiscount: (discountId: string) => void;
     onSaveStoreSettings: (settings: StoreSettings) => void;
     onUpdateUserPin: (userId: string, newPin: string) => void;
+    onExportData: () => void;
+    onImportData: (file: File) => void;
 }
 
 const ManagementView: React.FC<ManagementViewProps> = (props) => {
     const { 
         currentUser, products, categories, suppliers, customers, discounts, storeSettings, activityLogs, users,
         onSaveProduct, onDeleteProduct, onSaveCategory, onDeleteCategory, onSaveSupplier, onDeleteSupplier,
-        onSaveCustomer, onDeleteCustomer, onSaveDiscount, onDeleteDiscount, onSaveStoreSettings, onUpdateUserPin
+        onSaveCustomer, onDeleteCustomer, onSaveDiscount, onDeleteDiscount, onSaveStoreSettings, onUpdateUserPin,
+        onExportData, onImportData
     } = props;
     const [activeTab, setActiveTab] = useState<ActiveTab>('products');
     
@@ -58,6 +61,7 @@ const ManagementView: React.FC<ManagementViewProps> = (props) => {
     
     // Form state for settings
     const [settingsData, setSettingsData] = useState<StoreSettings>(storeSettings);
+    const importInputRef = useRef<HTMLInputElement>(null);
     
     const categoryMap = useMemo(() => new Map(categories.map(c => [c.id, c.name])), [categories]);
 
@@ -70,6 +74,19 @@ const ManagementView: React.FC<ManagementViewProps> = (props) => {
         e.preventDefault();
         onSaveStoreSettings(settingsData);
         alert('Settings saved!');
+    };
+
+    const handleImportClick = () => {
+        importInputRef.current?.click();
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            onImportData(file);
+            // Reset the input so the same file can be selected again
+            if(event.target) event.target.value = '';
+        }
     };
 
 
@@ -150,7 +167,56 @@ const ManagementView: React.FC<ManagementViewProps> = (props) => {
     const renderSuppliersTable = () => ( <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-x-auto"> <table className="w-full text-sm text-left text-slate-500 dark:text-slate-400"> <thead className="text-xs text-slate-700 dark:text-slate-300 uppercase bg-slate-50 dark:bg-slate-700/50"> <tr> <th scope="col" className="px-6 py-3">Supplier Name</th> <th scope="col" className="px-6 py-3">Contact Person</th> <th scope="col" className="px-6 py-3">Phone</th> <th scope="col" className="px-6 py-3"><span className="sr-only">Actions</span></th> </tr> </thead> <tbody> {suppliers.map(s => ( <tr key={s.id} className="bg-white dark:bg-slate-800 border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"> <th scope="row" className="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">{s.name}</th> <td className="px-6 py-4">{s.contactPerson}</td> <td className="px-6 py-4">{s.phone}</td> <td className="px-6 py-4 text-right space-x-2 whitespace-nowrap"> <button onClick={() => handleEdit(s, 'suppliers')} className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">Edit</button> <button onClick={() => handleDelete(s.id, 'suppliers')} className="font-medium text-red-600 dark:text-red-400 hover:underline">Delete</button> </td> </tr> ))} </tbody> </table> </div> );
     const renderCustomersTable = () => ( <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-x-auto"> <table className="w-full text-sm text-left text-slate-500 dark:text-slate-400"> <thead className="text-xs text-slate-700 dark:text-slate-300 uppercase bg-slate-50 dark:bg-slate-700/50"> <tr> <th scope="col" className="px-6 py-3">Customer Name</th> <th scope="col" className="px-6 py-3">Email</th> <th scope="col" className="px-6 py-3">Phone</th> <th scope="col" className="px-6 py-3"><span className="sr-only">Actions</span></th> </tr> </thead> <tbody> {customers.map(c => ( <tr key={c.id} className="bg-white dark:bg-slate-800 border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"> <th scope="row" className="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">{c.name}</th> <td className="px-6 py-4">{c.email}</td> <td className="px-6 py-4">{c.phone}</td> <td className="px-6 py-4 text-right space-x-2 whitespace-nowrap"> <button onClick={() => handleEdit(c, 'customers')} className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">Edit</button> <button onClick={() => handleDelete(c.id, 'customers')} className="font-medium text-red-600 dark:text-red-400 hover:underline">Delete</button> </td> </tr> ))} </tbody> </table> </div> );
     const renderDiscountsTable = () => ( <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-x-auto"> <table className="w-full text-sm text-left text-slate-500 dark:text-slate-400"> <thead className="text-xs text-slate-700 dark:text-slate-300 uppercase bg-slate-50 dark:bg-slate-700/50"> <tr> <th scope="col" className="px-6 py-3">Discount Name</th> <th scope="col" className="px-6 py-3">Type</th> <th scope="col" className="px-6 py-3">Value</th> <th scope="col" className="px-6 py-3"><span className="sr-only">Actions</span></th> </tr> </thead> <tbody> {discounts.map(d => ( <tr key={d.id} className="bg-white dark:bg-slate-800 border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"> <th scope="row" className="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">{d.name}</th> <td className="px-6 py-4 capitalize">{d.type}</td> <td className="px-6 py-4">{d.type === 'percentage' ? `${d.value}%` : `$${d.value.toFixed(2)}`}</td> <td className="px-6 py-4 text-right space-x-2 whitespace-nowrap"> <button onClick={() => handleEdit(d, 'discounts')} className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">Edit</button> <button onClick={() => handleDelete(d.id, 'discounts')} className="font-medium text-red-600 dark:text-red-400 hover:underline">Delete</button> </td> </tr> ))} </tbody> </table> </div> );
-    const renderSettingsForm = () => ( <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 max-w-2xl mx-auto"> <form onSubmit={handleSaveSettings}> <div className="space-y-6"> <div> <label htmlFor="storeName" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Store Name</label> <input type="text" name="storeName" id="storeName" value={settingsData.storeName} onChange={handleSettingsChange} required className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" /> </div> <div> <label htmlFor="storeAddress" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Store Address</label> <input type="text" name="storeAddress" id="storeAddress" value={settingsData.storeAddress} onChange={handleSettingsChange} required className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" /> </div> <div> <label htmlFor="taxRate" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tax Rate (%)</label> <input type="number" name="taxRate" id="taxRate" value={settingsData.taxRate * 100} onChange={handleSettingsChange} required min="0" step="0.01" className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" /> </div> </div> <div className="mt-8 flex justify-end"> <button type="submit" className="bg-indigo-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors">Save Settings</button> </div> </form> </div> );
+    const renderSettingsForm = () => ( 
+        <>
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 max-w-2xl mx-auto"> 
+                <form onSubmit={handleSaveSettings}> 
+                    <div className="space-y-6"> 
+                        <div> 
+                            <label htmlFor="storeName" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Store Name</label> 
+                            <input type="text" name="storeName" id="storeName" value={settingsData.storeName} onChange={handleSettingsChange} required className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" /> 
+                        </div> 
+                        <div> 
+                            <label htmlFor="storeAddress" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Store Address</label> 
+                            <input type="text" name="storeAddress" id="storeAddress" value={settingsData.storeAddress} onChange={handleSettingsChange} required className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" /> 
+                        </div> 
+                        <div> 
+                            <label htmlFor="taxRate" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tax Rate (%)</label> 
+                            <input type="number" name="taxRate" id="taxRate" value={settingsData.taxRate * 100} onChange={handleSettingsChange} required min="0" step="0.01" className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" /> 
+                        </div> 
+                    </div> 
+                    <div className="mt-8 flex justify-end"> 
+                        <button type="submit" className="bg-indigo-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors">Save Settings</button> 
+                    </div> 
+                </form> 
+            </div>
+            {currentUser.role === 'Admin' && (
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 max-w-2xl mx-auto mt-8">
+                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2">Data Management</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                        Export all your store data for backup, or import a previously exported file to restore data.
+                        <br/>
+                        <span className="font-semibold text-orange-600 dark:text-orange-400">Warning:</span> Importing will overwrite all existing data.
+                    </p>
+                    <div className="flex gap-4">
+                        <button onClick={onExportData} className="flex-1 px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Export Data
+                        </button>
+                        <input type="file" ref={importInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
+                        <button onClick={handleImportClick} className="flex-1 px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors flex items-center justify-center gap-2">
+                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                            Import Data
+                        </button>
+                    </div>
+                </div>
+            )}
+        </>
+    );
     const renderUsersTable = () => (
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-x-auto">
             <table className="w-full text-sm text-left text-slate-500 dark:text-slate-400">

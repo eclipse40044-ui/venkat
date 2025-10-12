@@ -88,6 +88,7 @@ const App: React.FC = () => {
     };
 
     const handleLogout = () => {
+        logActivity('LOGOUT');
         setCurrentUser(null);
     };
 
@@ -389,6 +390,82 @@ const App: React.FC = () => {
         setCurrentOrder(order);
         setShowInvoice(true);
     };
+    
+    const handleExportData = () => {
+        const dataToExport = {
+            pos_products: products,
+            pos_categories: categories,
+            pos_suppliers: suppliers,
+            pos_customers: customers,
+            pos_settings: storeSettings,
+            supermarket_pos_orders: orderHistory,
+            pos_users: users,
+            pos_discounts: discounts,
+            pos_activity_logs: activityLogs,
+            pos_theme: theme,
+            pos_cart_labels: cartLabels,
+        };
+    
+        const jsonString = JSON.stringify(dataToExport, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const href = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = href;
+        const date = new Date().toISOString().split('T')[0];
+        link.download = `yazh-shop-backup-${date}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(href);
+        logActivity('EXPORT_DATA');
+    };
+
+    const handleImportData = (file: File) => {
+        if (!file) return;
+    
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const text = e.target?.result;
+                if (typeof text !== 'string') {
+                    throw new Error('File content is not readable.');
+                }
+                const data = JSON.parse(text);
+    
+                if (!data.pos_products || !data.pos_categories) { // Basic validation
+                    throw new Error('Invalid backup file format.');
+                }
+                
+                const confirmed = window.confirm(
+                    "Are you sure you want to import this data? This will overwrite ALL current data and cannot be undone."
+                );
+    
+                if (confirmed) {
+                    setProducts(data.pos_products || MOCK_PRODUCTS);
+                    setCategories(data.pos_categories || MOCK_CATEGORIES);
+                    setSuppliers(data.pos_suppliers || MOCK_SUPPLIERS);
+                    setCustomers(data.pos_customers || MOCK_CUSTOMERS);
+                    setStoreSettings(data.pos_settings || MOCK_STORE_SETTINGS);
+                    setOrderHistory(data.supermarket_pos_orders || []);
+                    setUsers(data.pos_users || MOCK_USERS);
+                    setDiscounts(data.pos_discounts || MOCK_DISCOUNTS);
+                    setActivityLogs(data.pos_activity_logs || []);
+                    setTheme(data.pos_theme || 'light');
+                    setCartLabels(data.pos_cart_labels || MOCK_CART_LABELS);
+                    
+                    logActivity('IMPORT_DATA', `File: ${file.name}`);
+    
+                    alert('Data imported successfully! The application will now reload.');
+                    setTimeout(() => window.location.reload(), 500);
+                }
+    
+            } catch (error) {
+                console.error("Failed to import data:", error);
+                alert(`Failed to import data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
+        };
+        reader.readAsText(file);
+    };
 
     const renderView = () => {
         if (!currentUser) {
@@ -454,6 +531,8 @@ const App: React.FC = () => {
                         onSaveDiscount={handleSaveDiscount}
                         onDeleteDiscount={handleDeleteDiscount}
                         onUpdateUserPin={handleUpdateUserPin}
+                        onExportData={handleExportData}
+                        onImportData={handleImportData}
                     />
                 );
             case 'reports':
