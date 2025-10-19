@@ -1,4 +1,4 @@
-import { Product, Category, Supplier, Customer, StoreSettings, User, Discount, CartLabels, ActivityLog } from './types';
+import { Product, Category, Supplier, Customer, StoreSettings, User, Discount, ActivityLog, TimeClockEntry } from './types';
 
 export const PIN_LENGTH = 4;
 
@@ -50,8 +50,15 @@ export const MOCK_CUSTOMERS: Customer[] = [
 
 export const MOCK_STORE_SETTINGS: StoreSettings = {
     storeName: 'Yazh Shop',
-    storeAddress: '123 Market St, Techville',
+    storeAddressLine1: '123 Market St',
+    storeAddressLine2: '',
+    storeCity: 'Techville',
+    storeState: 'CA',
+    storeZipCode: '90210',
+    storeMobile: '987-654-3210',
+    storeLogoUrl: '',
     taxRate: 0.08, // 8%
+    showLogoOnInvoice: true,
 };
 
 export const MOCK_DISCOUNTS: Discount[] = [
@@ -60,14 +67,9 @@ export const MOCK_DISCOUNTS: Discount[] = [
     { id: 'disc-003', name: 'Clearance', type: 'percentage', value: 20 },
 ];
 
-export const MOCK_CART_LABELS: CartLabels = {
-    subtotal: 'Subtotal',
-    discount: 'Discount',
-    tax: 'Tax ({rate}%)',
-    total: 'Total',
-};
-
 export const MOCK_ACTIVITY_LOGS: ActivityLog[] = [];
+
+export const MOCK_TIME_CLOCK_ENTRIES: TimeClockEntry[] = [];
 
 export const ROLE_PERMISSIONS: Record<User['role'], string[]> = {
     Admin: [

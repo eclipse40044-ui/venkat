@@ -6,6 +6,7 @@ interface ReportsViewProps {
     orders: Order[];
     products: Product[];
     categories: Category[];
+    onReprint: (order: Order) => void;
 }
 
 type DateRange = 'month' | '30days' | 'all';
@@ -23,7 +24,7 @@ const SummaryCard: React.FC<{ title: string; value: string; icon: React.JSX.Elem
     </div>
 );
 
-const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories }) => {
+const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories, onReprint }) => {
     const [dateRange, setDateRange] = useState<DateRange>('month');
 
     const completedOrders = useMemo(() => orders.filter(o => o.status === 'completed'), [orders]);
@@ -64,11 +65,32 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories 
         
         const totalRevenue = todaysOrders.reduce((sum, order) => sum + order.total, 0);
         const totalOrders = todaysOrders.length;
+
+        let cashRevenue = 0;
+        let gPayRevenue = 0;
+
+        todaysOrders.forEach(order => {
+            if (order.paymentMethod === 'Split' && order.payments) {
+                 order.payments.forEach(payment => {
+                    if (payment.method === 'Cash') {
+                        cashRevenue += payment.amount;
+                    } else if (payment.method === 'G pay') {
+                        gPayRevenue += payment.amount;
+                    }
+                });
+            } else if (order.paymentMethod.includes('Cash')) {
+                cashRevenue += order.total;
+            } else if (order.paymentMethod.includes('G pay')) {
+                gPayRevenue += order.total;
+            }
+        });
     
         return {
-            orders: todaysOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), // show most recent first
+            orders: todaysOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
             totalRevenue,
             totalOrders,
+            cashRevenue,
+            gPayRevenue,
         };
     }, [completedOrders]);
 
@@ -149,14 +171,22 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories 
                     <p className="text-slate-500 dark:text-slate-400 text-center py-8">No sales yet today.</p>
                 ) : (
                     <div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                             <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
-                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Today's Revenue</p>
+                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Revenue</p>
                                 <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">${dailySalesData.totalRevenue.toFixed(2)}</p>
                             </div>
                             <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
-                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Today's Orders</p>
+                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Orders</p>
                                 <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{dailySalesData.totalOrders}</p>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
+                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Cash Sales</p>
+                                <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">${dailySalesData.cashRevenue.toFixed(2)}</p>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
+                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">G Pay Sales</p>
+                                <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">${dailySalesData.gPayRevenue.toFixed(2)}</p>
                             </div>
                         </div>
                         
@@ -169,6 +199,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories 
                                         <th scope="col" className="px-4 py-2">Time</th>
                                         <th scope="col" className="px-4 py-2">Items</th>
                                         <th scope="col" className="px-4 py-2 text-right">Amount</th>
+                                        <th scope="col" className="px-4 py-2 text-right"><span className="sr-only">Actions</span></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -178,6 +209,9 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories 
                                             <td className="px-4 py-2">{new Date(order.date).toLocaleTimeString()}</td>
                                             <td className="px-4 py-2">{order.items.length}</td>
                                             <td className="px-4 py-2 text-right font-semibold">${order.total.toFixed(2)}</td>
+                                            <td className="px-4 py-2 text-right">
+                                                <button onClick={() => onReprint(order)} className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">Print</button>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>

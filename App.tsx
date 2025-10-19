@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Product, CartItem, Order, Category, Supplier, Customer, StoreSettings, User, Discount, CartLabels, ActivityLog } from './types';
-import { MOCK_PRODUCTS, MOCK_CATEGORIES, MOCK_SUPPLIERS, MOCK_CUSTOMERS, MOCK_STORE_SETTINGS, MOCK_USERS, MOCK_DISCOUNTS, MOCK_CART_LABELS, MOCK_ACTIVITY_LOGS } from './constants';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Product, CartItem, Order, Category, Supplier, Customer, StoreSettings, User, Discount, ActivityLog, Payment, TimeClockEntry } from './types';
+import { MOCK_PRODUCTS, MOCK_CATEGORIES, MOCK_SUPPLIERS, MOCK_CUSTOMERS, MOCK_STORE_SETTINGS, MOCK_USERS, MOCK_DISCOUNTS, MOCK_ACTIVITY_LOGS, MOCK_TIME_CLOCK_ENTRIES } from './constants';
 import Header from './components/Header';
 import ProductList from './components/ProductList';
 import Cart from './components/Cart';
@@ -11,6 +11,148 @@ import ReportsView from './components/ReportsView';
 import OrdersView from './components/OrdersView';
 import BarcodeScanner from './components/BarcodeScanner';
 import LoginScreen from './components/LoginScreen';
+import ProductFilters from './components/ProductFilters';
+
+
+interface SplitBillModalProps {
+    totalAmount: number;
+    paymentsMade: Payment[];
+    onAddPayment: (method: string, amount: number) => void;
+    onClose: () => void;
+}
+
+const SplitBillModal: React.FC<SplitBillModalProps> = ({ totalAmount, paymentsMade, onAddPayment, onClose }) => {
+    const [amount, setAmount] = useState('');
+    const amountInputRef = useRef<HTMLInputElement>(null);
+
+    const paidAmount = useMemo(() => paymentsMade.reduce((sum, p) => sum + p.amount, 0), [paymentsMade]);
+    const remainingAmount = useMemo(() => totalAmount - paidAmount, [totalAmount, paidAmount]);
+
+    useEffect(() => {
+        if (remainingAmount > 0) {
+            setAmount(remainingAmount.toFixed(2));
+        } else {
+            setAmount('');
+        }
+        amountInputRef.current?.focus();
+        amountInputRef.current?.select();
+    }, [remainingAmount]);
+
+
+    const handleAddPayment = (method: string) => {
+        const paymentValue = parseFloat(amount);
+        if (isNaN(paymentValue) || paymentValue <= 0.001 || paymentValue > remainingAmount + 0.001) {
+            alert('Please enter a valid amount up to the remaining balance.');
+            return;
+        }
+        onAddPayment(method, paymentValue);
+    };
+    
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6" role="dialog" aria-modal="true">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Split Bill</h2>
+                    <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+
+                <div className="bg-slate-100 dark:bg-slate-700/50 p-4 rounded-lg mb-4 text-center">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Total Due</p>
+                    <p className="text-4xl font-bold text-slate-800 dark:text-slate-100">${totalAmount.toFixed(2)}</p>
+                </div>
+
+                <div className="mb-4">
+                    <label htmlFor="paymentAmount" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Amount to Pay</label>
+                    <div className="relative mt-1">
+                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                            <span className="text-slate-500 sm:text-sm">$</span>
+                        </div>
+                        <input
+                            ref={amountInputRef}
+                            type="number"
+                            name="paymentAmount"
+                            id="paymentAmount"
+                            className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 pl-7"
+                            placeholder="0.00"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            min="0.01"
+                            step="0.01"
+                        />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                    <button onClick={() => handleAddPayment('Cash')} className="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <span className="font-semibold text-slate-700 dark:text-slate-200">Pay Cash</span>
+                    </button>
+                    <button onClick={() => handleAddPayment('G pay')} className="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                         <span className="font-semibold text-slate-700 dark:text-slate-200">Pay G pay</span>
+                    </button>
+                </div>
+
+                <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+                    <div className="flex justify-between text-lg font-semibold text-green-600 dark:text-green-400 mb-2">
+                        <span>Remaining</span>
+                        <span>${remainingAmount.toFixed(2)}</span>
+                    </div>
+
+                    {paymentsMade.length > 0 && (
+                        <div>
+                            <h3 className="text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Payments Made</h3>
+                            <ul className="text-sm space-y-1 max-h-24 overflow-y-auto">
+                                {paymentsMade.map((p, i) => (
+                                    <li key={i} className="flex justify-between p-1 bg-slate-50 dark:bg-slate-700 rounded">
+                                        <span>{p.method}</span>
+                                        <span className="font-medium">${p.amount.toFixed(2)}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
+// Levenshtein distance function for fuzzy search
+function levenshteinDistance(a: string, b: string): number {
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+
+  const matrix = [];
+
+  // increment along the first column of each row
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+
+  // increment each column in the first row
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  // Fill in the rest of the matrix
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1, // substitution
+          matrix[i][j - 1] + 1,     // insertion
+          matrix[i - 1][j] + 1      // deletion
+        );
+      }
+    }
+  }
+
+  return matrix[b.length][a.length];
+}
 
 // Custom hook for persisting state to localStorage
 function useLocalStorageState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -31,6 +173,10 @@ function useLocalStorageState<T>(key: string, defaultValue: T): [T, React.Dispat
     return [state, setState];
 }
 
+type SplitOrderDetails = {
+    total: number;
+    payments: Payment[];
+};
 
 const App: React.FC = () => {
     const [view, setView] = useState<'pos' | 'manage' | 'reports' | 'orders'>('pos');
@@ -45,21 +191,27 @@ const App: React.FC = () => {
     const [users, setUsers] = useLocalStorageState<User[]>('pos_users', MOCK_USERS);
     const [discounts, setDiscounts] = useLocalStorageState<Discount[]>('pos_discounts', MOCK_DISCOUNTS);
     const [activityLogs, setActivityLogs] = useLocalStorageState<ActivityLog[]>('pos_activity_logs', MOCK_ACTIVITY_LOGS);
+    const [timeClockEntries, setTimeClockEntries] = useLocalStorageState<TimeClockEntry[]>('pos_time_clock', MOCK_TIME_CLOCK_ENTRIES);
     const [theme, setTheme] = useLocalStorageState<'light' | 'dark'>('pos_theme', 'light');
-    const [cartLabels, setCartLabels] = useLocalStorageState<CartLabels>('pos_cart_labels', MOCK_CART_LABELS);
 
     // App state
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     
     // POS-specific states
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
+    const [cartMode, setCartMode] = useState<'sale' | 'return'>('sale');
     const [searchTerm, setSearchTerm] = useState('');
     const [appliedDiscountId, setAppliedDiscountId] = useState<string>('');
+    const [manualDiscount, setManualDiscount] = useState<{ type: 'fixed' | 'percentage', value: number } | null>(null);
     const [walkInCustomerPhone, setWalkInCustomerPhone] = useState('');
     const [showInvoice, setShowInvoice] = useState(false);
     const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
     const [barcodeError, setBarcodeError] = useState<string | null>(null);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
+    const [productViewMode, setProductViewMode] = useState<'grid' | 'list'>('grid');
+    const [activeCategoryId, setActiveCategoryId] = useState<string>('all');
+    const [stockStatusFilter, setStockStatusFilter] = useState<string>('all');
+    const [splitOrderDetails, setSplitOrderDetails] = useState<SplitOrderDetails | null>(null);
 
     useEffect(() => {
         if (theme === 'dark') {
@@ -96,36 +248,71 @@ const App: React.FC = () => {
         setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
     };
 
-    const handleAddToCart = (product: Product) => {
-        const itemInCart = cartItems.find(item => item.id === product.id);
-        const currentQtyInCart = itemInCart ? itemInCart.quantity : 0;
-
-        if (product.stock < currentQtyInCart + 1) {
-            alert("Cannot add more items than available in stock.");
-            return;
+    const currentUserClockInEntry = useMemo(() => {
+        if (!currentUser) return null;
+        return timeClockEntries
+            .filter(entry => entry.userId === currentUser.id && !entry.clockOutTime)
+            .sort((a, b) => new Date(b.clockInTime).getTime() - new Date(a.clockInTime).getTime())[0] || null;
+    }, [timeClockEntries, currentUser]);
+    
+    const handleClockInOut = () => {
+        if (!currentUser) return;
+    
+        if (currentUserClockInEntry) { // Clocking out
+            const updatedEntry = { ...currentUserClockInEntry, clockOutTime: new Date().toISOString() };
+            setTimeClockEntries(prev => prev.map(e => e.id === updatedEntry.id ? updatedEntry : e));
+            logActivity('CLOCK_OUT');
+        } else { // Clocking in
+            const newEntry: TimeClockEntry = {
+                id: `tc-${Date.now()}`,
+                userId: currentUser.id,
+                clockInTime: new Date().toISOString(),
+            };
+            setTimeClockEntries(prev => [newEntry, ...prev]);
+            logActivity('CLOCK_IN');
         }
+    };
 
+    const handleAddToCart = (product: Product) => {
         setCartItems(prevItems => {
             const exist = prevItems.find(item => item.id === product.id);
-            if (exist) {
-                return prevItems.map(item =>
-                    item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-                );
-            } else {
-                return [...prevItems, { ...product, quantity: 1 }];
+            let updatedItems;
+    
+            if (cartMode === 'sale') {
+                const currentQtyInCart = exist ? exist.quantity : 0;
+                if (product.stock <= currentQtyInCart) {
+                    alert("Cannot add more items than available in stock.");
+                    return prevItems;
+                }
+                if (exist) {
+                    updatedItems = prevItems.map(item =>
+                        item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+                    );
+                } else {
+                    updatedItems = [...prevItems, { ...product, quantity: 1 }];
+                }
+            } else { // Return mode
+                if (exist) {
+                    updatedItems = prevItems.map(item =>
+                        item.id === product.id ? { ...item, quantity: item.quantity - 1 } : item
+                    );
+                } else {
+                    updatedItems = [...prevItems, { ...product, quantity: -1 }];
+                }
             }
+             return updatedItems.filter(item => item.quantity !== 0);
         });
     };
 
     const handleBarcodeScan = (barcode: string) => {
         const product = products.find(p => p.barcode === barcode);
         if (product) {
-            if (product.stock > 0) {
+            if (cartMode === 'sale' && product.stock <= 0) {
+                 setBarcodeError(`Product "${product.name}" is out of stock.`);
+            } else {
                 handleAddToCart(product);
                 setSearchTerm(''); 
                 setBarcodeError(null);
-            } else {
-                setBarcodeError(`Product "${product.name}" is out of stock.`);
             }
         } else {
             setBarcodeError(`Product with barcode "${barcode}" not found.`);
@@ -146,22 +333,22 @@ const App: React.FC = () => {
 
     const handleUpdateQuantity = (productId: string, quantity: number) => {
         setCartItems(prevItems => {
+            if (quantity === 0) {
+                return prevItems.filter(item => item.id !== productId);
+            }
+    
             const product = products.find(p => p.id === productId);
-            const itemInCart = prevItems.find(item => item.id === productId);
-
-            if (!product || !itemInCart) return prevItems;
-
-            if (quantity > product.stock) {
+            if (!product) return prevItems;
+    
+            // Stock check only for positive quantities (sales)
+            if (quantity > 0 && quantity > product.stock) {
                 alert(`Cannot set quantity to ${quantity}. Only ${product.stock} available in stock.`);
                 return prevItems;
             }
-
-            if (quantity <= 0) {
-                return prevItems.filter(item => item.id !== productId);
-            }
+    
             return prevItems.map(item =>
                 item.id === productId ? { ...item, quantity } : item
-            );
+            ).filter(item => item.quantity !== 0);
         });
     };
     
@@ -169,28 +356,53 @@ const App: React.FC = () => {
         setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
     };
 
-    const handleCheckout = (paymentMethod: string) => {
-        if (cartItems.length > 0 && currentUser) {
-            const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
-            
-            let discountAmount = 0;
-            let appliedDiscount: Order['appliedDiscount'] | undefined = undefined;
-            const selectedDiscount = discounts.find(d => d.id === appliedDiscountId);
+    const calculateTotals = () => {
+        const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+        
+        let discountAmount = 0;
+        let appliedDiscount: Order['appliedDiscount'] | undefined = undefined;
 
+        if (manualDiscount && manualDiscount.value > 0) { // Prioritize manual discount
+            if (manualDiscount.type === 'percentage') {
+                discountAmount = subtotal * (manualDiscount.value / 100);
+            } else {
+                discountAmount = manualDiscount.value;
+            }
+            appliedDiscount = { name: 'Manual Discount', amount: discountAmount };
+        } else { // Fallback to dropdown discount
+            const selectedDiscount = discounts.find(d => d.id === appliedDiscountId);
             if(selectedDiscount) {
                 if(selectedDiscount.type === 'percentage') {
                     discountAmount = subtotal * (selectedDiscount.value / 100);
                 } else {
                     discountAmount = selectedDiscount.value;
                 }
-                // Ensure discount doesn't exceed subtotal
-                discountAmount = Math.min(discountAmount, subtotal);
                 appliedDiscount = { name: selectedDiscount.name, amount: discountAmount };
             }
+        }
+        
+        // Discount should only apply to positive subtotals (sales part of the cart)
+        if (subtotal > 0) {
+            discountAmount = Math.min(discountAmount, subtotal);
+            if (appliedDiscount) {
+                appliedDiscount.amount = discountAmount;
+            }
+        } else {
+            discountAmount = 0;
+            appliedDiscount = undefined;
+        }
 
-            const totalAfterDiscount = subtotal - discountAmount;
-            const taxAmount = totalAfterDiscount * storeSettings.taxRate;
-            const total = totalAfterDiscount + taxAmount;
+
+        const totalAfterDiscount = subtotal - discountAmount;
+        const taxAmount = (totalAfterDiscount > 0 ? totalAfterDiscount : 0) * storeSettings.taxRate;
+        const total = totalAfterDiscount + taxAmount;
+        
+        return { subtotal, taxAmount, total, appliedDiscount, discountAmount };
+    };
+
+    const handleCheckout = (paymentMethod: string) => {
+        if (cartItems.length > 0 && currentUser) {
+            const { subtotal, taxAmount, total, appliedDiscount } = calculateTotals();
             
             const customerDetails: Customer | undefined = walkInCustomerPhone.trim()
                 ? { id: 'walk-in', name: 'Walk-in Customer', phone: walkInCustomerPhone.trim(), email: '' }
@@ -204,6 +416,7 @@ const App: React.FC = () => {
                 taxAmount,
                 total,
                 paymentMethod,
+                payments: [{ method: paymentMethod, amount: total }],
                 customer: customerDetails,
                 userId: currentUser.id,
                 status: 'completed',
@@ -218,6 +431,8 @@ const App: React.FC = () => {
         setCartItems([]);
         setAppliedDiscountId('');
         setWalkInCustomerPhone('');
+        setManualDiscount(null);
+        setCartMode('sale');
     };
 
     const handleCloseInvoice = () => {
@@ -225,13 +440,32 @@ const App: React.FC = () => {
             const orderExists = orderHistory.some(o => o.id === currentOrder.id);
             if (!orderExists) {
                 setOrderHistory(prev => [currentOrder, ...prev]);
-                 logActivity('SALE', `Order ID: ${currentOrder.id}, Total: $${currentOrder.total.toFixed(2)}`);
-                // Decrease stock only when the sale is first completed
+                
+                const totalQuantity = currentOrder.items.reduce((sum, item) => sum + item.quantity, 0);
+                const detailsParts = [
+                    `Order ID: ${currentOrder.id}`,
+                    `Total: $${currentOrder.total.toFixed(2)}`,
+                    `Items: ${totalQuantity.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}`,
+                    `Payment: ${currentOrder.paymentMethod}`
+                ];
+
+                if (currentOrder.customer) {
+                    detailsParts.push(`Customer: ${currentOrder.customer.name}`);
+                }
+
+                if (currentOrder.appliedDiscount && currentOrder.appliedDiscount.amount > 0) {
+                    detailsParts.push(`Discount: "${currentOrder.appliedDiscount.name}" (-$${currentOrder.appliedDiscount.amount.toFixed(2)})`);
+                }
+
+                logActivity('SALE', detailsParts.join('; '));
+                
                 setProducts(prevProducts => {
                     const newProducts = [...prevProducts];
                     currentOrder.items.forEach(item => {
                         const productIndex = newProducts.findIndex(p => p.id === item.id);
                         if (productIndex !== -1) {
+                            // This correctly handles both sales (quantity > 0) and returns (quantity < 0)
+                            // For returns, `stock -= (-quantity)` becomes `stock += quantity`.
                             newProducts[productIndex].stock -= item.quantity;
                         }
                     });
@@ -246,16 +480,114 @@ const App: React.FC = () => {
         }
     };
 
+    const handleInitiateSplitBill = () => {
+        if (cartItems.length === 0) return;
+        const { total } = calculateTotals();
+        if (total <= 0) {
+            alert("Split bill is not available for refunds or zero-total exchanges.");
+            return;
+        }
+        setSplitOrderDetails({
+            total: total,
+            payments: [],
+        });
+    };
+
+    const handleAddPartialPayment = (method: string, amount: number) => {
+        if (!splitOrderDetails || !currentUser) return;
+    
+        const newPayments = [...splitOrderDetails.payments, { method, amount }];
+        const totalPaid = newPayments.reduce((sum, p) => sum + p.amount, 0);
+
+        if (totalPaid >= splitOrderDetails.total - 0.001) {
+            const { subtotal, taxAmount, total, appliedDiscount } = calculateTotals();
+            const customerDetails = walkInCustomerPhone.trim() ? { id: 'walk-in', name: 'Walk-in Customer', phone: walkInCustomerPhone.trim(), email: '' } : undefined;
+    
+            const finalPayments = [...newPayments];
+            const totalOverpaid = totalPaid - total;
+            if (totalOverpaid > 0.001) {
+                finalPayments[finalPayments.length - 1].amount -= totalOverpaid;
+            }
+    
+            const order: Order = {
+                id: `INV-${Date.now().toString().slice(-6)}`,
+                date: new Date().toISOString(),
+                items: cartItems,
+                subtotal, taxAmount, total,
+                paymentMethod: 'Split',
+                payments: finalPayments,
+                customer: customerDetails,
+                userId: currentUser.id,
+                status: 'completed',
+                appliedDiscount,
+            };
+            setCurrentOrder(order);
+            setShowInvoice(true);
+            setSplitOrderDetails(null);
+        } else {
+            setSplitOrderDetails({ ...splitOrderDetails, payments: newPayments });
+        }
+    };
+
+    const handleCancelSplitBill = () => {
+        setSplitOrderDetails(null);
+    };
+
     const filteredProducts = useMemo(() => {
-        return products.filter(product =>
-            product.name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [searchTerm, products]);
+        let tempProducts = [...products];
+
+        if (activeCategoryId !== 'all') {
+            tempProducts = tempProducts.filter(p => p.categoryId === activeCategoryId);
+        }
+
+        if (stockStatusFilter !== 'all') {
+            tempProducts = tempProducts.filter(p => {
+                if (stockStatusFilter === 'inStock') return p.stock > p.lowStockThreshold;
+                if (stockStatusFilter === 'lowStock') return p.stock > 0 && p.stock <= p.lowStockThreshold;
+                if (stockStatusFilter === 'outOfStock') return p.stock <= 0;
+                return true;
+            });
+        }
+
+        const term = searchTerm.toLowerCase().trim();
+        if (!term) {
+            return tempProducts;
+        }
+
+        const results = tempProducts
+            .map(product => {
+                const productNameLower = product.name.toLowerCase();
+                if (productNameLower.includes(term)) {
+                    return { product, score: 0 };
+                }
+                const words = productNameLower.split(' ');
+                let minDistance = Infinity;
+                for (const word of words) {
+                    const distance = levenshteinDistance(term, word);
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                    }
+                }
+                return { product, score: minDistance };
+            })
+            .filter(result => {
+                const threshold = term.length > 5 ? 2 : 1;
+                return result.score <= threshold;
+            })
+            .sort((a, b) => a.score - b.score)
+            .map(result => result.product);
+            
+        return results;
+    }, [searchTerm, products, activeCategoryId, stockStatusFilter]);
     
     const expiringProductsCount = useMemo(() => {
         const now = new Date();
         const sevenDaysFromNow = new Date(now.setDate(now.getDate() + 7));
         return products.filter(p => p.expiryDate && new Date(p.expiryDate) < sevenDaysFromNow).length;
+    }, [products]);
+
+    const lowStockProductsCount = useMemo(() => {
+        return products.filter(p => p.stock > 0 && p.stock <= p.lowStockThreshold).length;
     }, [products]);
 
     // CRUD Handlers
@@ -346,8 +678,36 @@ const App: React.FC = () => {
         logActivity('DELETE_DISCOUNT', `ID: ${discountId}, Name: ${discountName}`);
     };
 
-    const handleSaveCartLabels = (labels: CartLabels) => {
-        setCartLabels(labels);
+    const handleSaveUser = (userToSave: User) => {
+        const isNew = !users.some(u => u.id === userToSave.id);
+        setUsers(prev => {
+            if (isNew) {
+                return [userToSave, ...prev];
+            }
+            // PIN is only set on creation, not updated here
+            return prev.map(u => u.id === userToSave.id ? { ...u, name: userToSave.name, role: userToSave.role } : u);
+        });
+        logActivity(isNew ? 'CREATE_USER' : 'UPDATE_USER', `Name: ${userToSave.name}, Role: ${userToSave.role}`);
+    };
+
+    const handleDeleteUser = (userId: string) => {
+        const userToDelete = users.find(u => u.id === userId);
+        if (!userToDelete) return;
+
+        // Prevent deleting the last admin
+        const adminUsers = users.filter(u => u.role === 'Admin');
+        if (userToDelete.role === 'Admin' && adminUsers.length <= 1) {
+            alert("Cannot delete the last administrator.");
+            return;
+        }
+        
+        if (currentUser?.id === userId) {
+            alert("You cannot delete the currently logged-in user.");
+            return;
+        }
+
+        setUsers(prev => prev.filter(u => u.id !== userId));
+        logActivity('DELETE_USER', `ID: ${userId}, Name: ${userToDelete.name}`);
     };
 
     const handleUpdateUserPin = (userId: string, newPin: string) => {
@@ -359,6 +719,27 @@ const App: React.FC = () => {
         }
     };
 
+    const handleSaveTimeClockEntry = (entryToSave: TimeClockEntry) => {
+        const isNew = !timeClockEntries.some(e => e.id === entryToSave.id);
+        setTimeClockEntries(prev => {
+            if(isNew) {
+                return [entryToSave, ...prev];
+            }
+            return prev.map(e => e.id === entryToSave.id ? entryToSave : e);
+        });
+        const userName = users.find(u => u.id === entryToSave.userId)?.name || 'Unknown';
+        logActivity(isNew ? 'CREATE_TIME_ENTRY' : 'UPDATE_TIME_ENTRY', `User: ${userName}`);
+    };
+    
+    const handleDeleteTimeClockEntry = (entryId: string) => {
+        const entry = timeClockEntries.find(e => e.id === entryId);
+        if (entry) {
+            const userName = users.find(u => u.id === entry.userId)?.name || 'Unknown';
+            setTimeClockEntries(prev => prev.filter(e => e.id !== entryId));
+            logActivity('DELETE_TIME_ENTRY', `User: ${userName}, Clock In: ${new Date(entry.clockInTime).toLocaleString()}`);
+        }
+    };
+
     const handleRefundOrder = (orderId: string) => {
         const orderToRefund = orderHistory.find(o => o.id === orderId);
         if (!orderToRefund || orderToRefund.status === 'refunded') {
@@ -366,13 +747,12 @@ const App: React.FC = () => {
             return;
         }
 
-        // 1. Update order status
         setOrderHistory(prev =>
             prev.map(o => (o.id === orderId ? { ...o, status: 'refunded' } : o))
         );
-         logActivity('REFUND', `Order ID: ${orderId}`);
+        const details = `Order ID: ${orderId}; Refunded Amount: $${orderToRefund.total.toFixed(2)}`;
+        logActivity('REFUND', details);
 
-        // 2. Return items to stock
         setProducts(prevProducts => {
             const newProducts = [...prevProducts];
             orderToRefund.items.forEach(item => {
@@ -402,8 +782,8 @@ const App: React.FC = () => {
             pos_users: users,
             pos_discounts: discounts,
             pos_activity_logs: activityLogs,
+            pos_time_clock: timeClockEntries,
             pos_theme: theme,
-            pos_cart_labels: cartLabels,
         };
     
         const jsonString = JSON.stringify(dataToExport, null, 2);
@@ -450,8 +830,8 @@ const App: React.FC = () => {
                     setUsers(data.pos_users || MOCK_USERS);
                     setDiscounts(data.pos_discounts || MOCK_DISCOUNTS);
                     setActivityLogs(data.pos_activity_logs || []);
+                    setTimeClockEntries(data.pos_time_clock || []);
                     setTheme(data.pos_theme || 'light');
-                    setCartLabels(data.pos_cart_labels || MOCK_CART_LABELS);
                     
                     logActivity('IMPORT_DATA', `File: ${file.name}`);
     
@@ -469,7 +849,7 @@ const App: React.FC = () => {
 
     const renderView = () => {
         if (!currentUser) {
-            return <LoginScreen users={users} onLoginSuccess={handleLoginSuccess} />;
+            return <LoginScreen users={users} onLoginSuccess={handleLoginSuccess} storeSettings={storeSettings} />;
         }
         
         switch (view) {
@@ -484,8 +864,23 @@ const App: React.FC = () => {
                                     onBarcodeSubmit={handleBarcodeScan}
                                     barcodeError={barcodeError}
                                     onCameraClick={() => setIsScannerOpen(true)}
+                                    viewMode={productViewMode}
+                                    onSetViewMode={setProductViewMode}
                                 />
-                                <ProductList products={filteredProducts} onAddToCart={handleAddToCart} cartItems={cartItems} />
+                                <ProductFilters
+                                    categories={categories}
+                                    activeCategoryId={activeCategoryId}
+                                    onCategoryChange={setActiveCategoryId}
+                                    stockStatusFilter={stockStatusFilter}
+                                    onStockStatusChange={setStockStatusFilter}
+                                />
+                                <ProductList 
+                                    products={filteredProducts} 
+                                    onAddToCart={handleAddToCart} 
+                                    cartItems={cartItems} 
+                                    viewMode={productViewMode}
+                                    searchTerm={searchTerm}
+                                />
                             </div>
                             <aside>
                                 <Cart
@@ -494,14 +889,17 @@ const App: React.FC = () => {
                                     discounts={discounts}
                                     appliedDiscountId={appliedDiscountId}
                                     onApplyDiscount={setAppliedDiscountId}
-                                    cartLabels={cartLabels}
-                                    onSaveLabels={handleSaveCartLabels}
+                                    manualDiscount={manualDiscount}
+                                    onSetManualDiscount={setManualDiscount}
                                     onUpdateQuantity={handleUpdateQuantity}
                                     onRemoveFromCart={handleRemoveFromCart}
                                     onCheckout={handleCheckout}
                                     onClearCart={handleClearCart}
                                     walkInCustomerPhone={walkInCustomerPhone}
                                     onPhoneChange={setWalkInCustomerPhone}
+                                    onInitiateSplitBill={handleInitiateSplitBill}
+                                    cartMode={cartMode}
+                                    onSetCartMode={setCartMode}
                                 />
                             </aside>
                         </div>
@@ -519,6 +917,7 @@ const App: React.FC = () => {
                         storeSettings={storeSettings}
                         activityLogs={activityLogs}
                         users={users}
+                        timeClockEntries={timeClockEntries}
                         onSaveProduct={handleSaveProduct}
                         onDeleteProduct={handleDeleteProduct}
                         onSaveCategory={handleSaveCategory}
@@ -530,7 +929,11 @@ const App: React.FC = () => {
                         onSaveStoreSettings={handleSaveStoreSettings}
                         onSaveDiscount={handleSaveDiscount}
                         onDeleteDiscount={handleDeleteDiscount}
+                        onSaveUser={handleSaveUser}
+                        onDeleteUser={handleDeleteUser}
                         onUpdateUserPin={handleUpdateUserPin}
+                        onSaveTimeClockEntry={handleSaveTimeClockEntry}
+                        onDeleteTimeClockEntry={handleDeleteTimeClockEntry}
                         onExportData={handleExportData}
                         onImportData={handleImportData}
                     />
@@ -541,6 +944,7 @@ const App: React.FC = () => {
                         orders={orderHistory}
                         products={products}
                         categories={categories}
+                        onReprint={handleReprintInvoice}
                     />
                 );
             case 'orders':
@@ -560,19 +964,23 @@ const App: React.FC = () => {
 
 
     if (!currentUser) {
-        return <LoginScreen users={users} onLoginSuccess={handleLoginSuccess} />;
+        return <LoginScreen users={users} onLoginSuccess={handleLoginSuccess} storeSettings={storeSettings} />;
     }
 
     return (
-        <div className="min-h-screen bg-slate-100/50 dark:bg-slate-950">
+        <div className="min-h-screen">
             <Header
                 view={view}
                 onSetView={setView}
                 expiringProductsCount={expiringProductsCount}
+                lowStockProductsCount={lowStockProductsCount}
                 currentUser={currentUser}
                 onLogout={handleLogout}
                 theme={theme}
                 onToggleTheme={handleToggleTheme}
+                storeSettings={storeSettings}
+                currentUserClockInEntry={currentUserClockInEntry}
+                onClockInOut={handleClockInOut}
             />
            
             {renderView()}
@@ -589,6 +997,15 @@ const App: React.FC = () => {
                     order={currentOrder}
                     storeSettings={storeSettings}
                     onClose={handleCloseInvoice}
+                />
+            )}
+
+            {splitOrderDetails && (
+                <SplitBillModal
+                    totalAmount={splitOrderDetails.total}
+                    paymentsMade={splitOrderDetails.payments}
+                    onAddPayment={handleAddPartialPayment}
+                    onClose={handleCancelSplitBill}
                 />
             )}
         </div>

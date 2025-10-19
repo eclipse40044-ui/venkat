@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { User } from '../types';
+import { User, StoreSettings } from '../types';
 import { PIN_LENGTH } from '../constants';
 
 interface LoginScreenProps {
     users: User[];
     onLoginSuccess: (user: User) => void;
+    storeSettings: StoreSettings;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLoginSuccess }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLoginSuccess, storeSettings }) => {
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [pin, setPin] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
@@ -72,14 +73,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLoginSuccess }) => {
     };
     
     return (
-        <div className="min-h-screen bg-slate-100 dark:bg-slate-900 flex flex-col justify-center items-center p-4">
+        <div className="min-h-screen flex flex-col justify-center items-center p-4">
             <style>{`.animate-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; } @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }`}</style>
             <div className="w-full max-w-sm text-center">
                  <div className="flex items-center justify-center gap-3 mb-8">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-indigo-600 dark:text-indigo-400" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M16 6V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H2v13c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6h-6zm-6-2h4v2h-4V4zM4 8h16v11H4V8zm3 2v6h2V10H7zm4 0v6h2V10h-2zm4 0v6h2V10h-2z"/>
-                    </svg>
-                    <h1 className="text-4xl font-bold text-slate-800 dark:text-slate-100">Yazh Shop</h1>
+                    {storeSettings.storeLogoUrl ? (
+                         <img src={storeSettings.storeLogoUrl} alt={`${storeSettings.storeName} logo`} className="h-12 w-auto object-contain" />
+                    ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-indigo-600 dark:text-indigo-400" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M16 6V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H2v13c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6h-6zm-6-2h4v2h-4V4zM4 8h16v11H4V8zm3 2v6h2V10H7zm4 0v6h2V10h-2zm4 0v6h2V10h-2z"/>
+                        </svg>
+                    )}
+                    <h1 className="text-4xl font-bold text-slate-800 dark:text-slate-100">{storeSettings.storeName}</h1>
                 </div>
 
                 {selectedUser ? (

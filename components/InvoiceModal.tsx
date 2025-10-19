@@ -37,6 +37,10 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, storeSettings, onClo
                     .dark #invoice-section * {
                         color: black !important;
                     }
+                    #invoice-section img {
+                        -webkit-print-color-adjust: exact !important;
+                        color-adjust: exact !important;
+                    }
                     .no-print {
                         display: none;
                     }
@@ -51,9 +55,19 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, storeSettings, onClo
                             <p className="text-slate-500 dark:text-slate-400">{invoiceId}</p>
                              <p className="text-slate-500 dark:text-slate-400">Date: {invoiceDate.toLocaleString()}</p>
                         </div>
-                        <div className="text-right">
-                            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{storeSettings.storeName}</h3>
-                            <p className="text-slate-500 dark:text-slate-400">{storeSettings.storeAddress}</p>
+                        <div className="flex items-start justify-end gap-4 text-right">
+                            {storeSettings.showLogoOnInvoice && (
+                                <div>
+                                    <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{storeSettings.storeName}</h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">{storeSettings.storeAddressLine1}</p>
+                                    {storeSettings.storeAddressLine2 && <p className="text-sm text-slate-500 dark:text-slate-400">{storeSettings.storeAddressLine2}</p>}
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">{`${storeSettings.storeCity}, ${storeSettings.storeState} ${storeSettings.storeZipCode}`}</p>
+                                    {storeSettings.storeMobile && <p className="text-sm text-slate-500 dark:text-slate-400">Tel: {storeSettings.storeMobile}</p>}
+                                </div>
+                            )}
+                            {storeSettings.showLogoOnInvoice && storeSettings.storeLogoUrl && (
+                                <img src={storeSettings.storeLogoUrl} alt={`${storeSettings.storeName} logo`} className="h-16 w-16 object-contain rounded-md" />
+                            )}
                         </div>
                     </div>
 
@@ -78,8 +92,8 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, storeSettings, onClo
                         </thead>
                         <tbody>
                             {cartItems.map(item => (
-                                <tr key={item.id} className="border-b border-slate-100 dark:border-slate-800">
-                                    <td className="py-3">{item.name}</td>
+                                <tr key={item.id} className={`border-b border-slate-100 dark:border-slate-800 ${item.quantity < 0 ? 'text-red-600 dark:text-red-400' : ''}`}>
+                                    <td className="py-3">{item.name} {item.quantity < 0 ? '(Return)' : ''}</td>
                                     <td className="py-3 text-center">{item.quantity}</td>
                                     <td className="py-3 text-right">${item.price.toFixed(2)}</td>
                                     <td className="py-3 text-right">${(item.price * item.quantity).toFixed(2)}</td>
@@ -105,12 +119,29 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, storeSettings, onClo
                                 <span className="font-medium">${taxAmount.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between text-2xl font-bold text-slate-800 dark:text-slate-100 mt-2 pt-2 border-t-2 border-slate-200 dark:border-slate-700">
-                                <span>Total Due</span>
-                                <span>${total.toFixed(2)}</span>
+                                <span>{total < 0 ? 'Total Refund' : 'Total Due'}</span>
+                                <span>${Math.abs(total).toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between text-slate-600 dark:text-slate-300 pt-2 border-t border-slate-200 dark:border-slate-700">
-                                <span>Paid with</span>
-                                <span className="font-medium">{paymentMethod}</span>
+                            <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
+                                {(order.payments && order.payments.length > 1) ? (
+                                    <>
+                                        <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                                            <span>{total < 0 ? 'Refunded via' : 'Paid via'}</span>
+                                            <span className="font-medium">Split Payment</span>
+                                        </div>
+                                        {order.payments.map((p, i) => (
+                                            <div key={i} className="flex justify-between text-sm text-slate-500 dark:text-slate-400 pl-4">
+                                                <span>- {p.method}</span>
+                                                <span>${p.amount.toFixed(2)}</span>
+                                            </div>
+                                        ))}
+                                    </>
+                                ) : (
+                                    <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                                        <span>{total < 0 ? 'Refunded via' : 'Paid with'}</span>
+                                        <span className="font-medium">{paymentMethod}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

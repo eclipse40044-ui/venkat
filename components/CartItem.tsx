@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect } from 'react';
 import { CartItem } from '../types';
 
@@ -20,7 +17,7 @@ const CartItemComponent: React.FC<CartItemProps> = ({ item, onUpdateQuantity, on
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        const regex = isWeighted ? /^\d*\.?\d*$/ : /^\d*$/;
+        const regex = isWeighted ? /^-?\d*\.?\d*$/ : /^-?\d*$/; // Allow negative sign
         if (regex.test(value)) {
             setInputValue(value);
         }
@@ -28,7 +25,7 @@ const CartItemComponent: React.FC<CartItemProps> = ({ item, onUpdateQuantity, on
 
     const handleInputBlur = () => {
         const newQuantity = isWeighted ? parseFloat(inputValue) : parseInt(inputValue, 10);
-        if (isNaN(newQuantity) || newQuantity < 0) {
+        if (isNaN(newQuantity)) {
             setInputValue(item.quantity.toString());
         } else {
             if (newQuantity !== item.quantity) {
@@ -44,7 +41,7 @@ const CartItemComponent: React.FC<CartItemProps> = ({ item, onUpdateQuantity, on
     };
 
     return (
-        <li className="flex items-center gap-4">
+        <li className={`flex items-center gap-4 p-2 rounded-lg ${item.quantity < 0 ? 'bg-red-50 dark:bg-red-900/20' : ''}`}>
             <img src={item.imageUrl} alt={item.name} className="w-16 h-16 rounded-lg object-cover" />
             <div className="flex-grow">
                 <p className="font-semibold text-slate-800 dark:text-slate-100">{item.name}</p>
@@ -91,7 +88,7 @@ const CartItemComponent: React.FC<CartItemProps> = ({ item, onUpdateQuantity, on
                     aria-label={`Remove ${item.name} from cart`}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" />
+                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002 2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" />
                     </svg>
                 </button>
             </div>

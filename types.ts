@@ -1,3 +1,4 @@
+
 export interface Category {
   id: string;
   name: string;
@@ -29,8 +30,16 @@ export interface CartItem extends Product {
   quantity: number;
 }
 
+// FIX: Add CartLabels interface for use in CartCustomizationModal.tsx
+export interface CartLabels {
+  subtotal: string;
+  discount: string;
+  tax: string;
+  total: string;
+}
+
 export interface Customer {
-  id: string;
+  id:string;
   name: string;
   phone: string;
   email: string;
@@ -38,8 +47,15 @@ export interface Customer {
 
 export interface StoreSettings {
     storeName: string;
-    storeAddress: string;
+    storeAddressLine1: string;
+    storeAddressLine2?: string;
+    storeCity: string;
+    storeState: string;
+    storeZipCode: string;
+    storeMobile?: string;
+    storeLogoUrl?: string;
     taxRate: number; // e.g., 0.08 for 8%
+    showLogoOnInvoice: boolean;
 }
 
 export interface User {
@@ -56,6 +72,11 @@ export interface Discount {
     value: number;
 }
 
+export interface Payment {
+  method: string;
+  amount: number;
+}
+
 export interface Order {
   id: string;
   date: string;
@@ -63,7 +84,8 @@ export interface Order {
   subtotal: number;
   taxAmount: number;
   total: number;
-  paymentMethod: string;
+  paymentMethod: string; // e.g. 'Cash', 'G pay', 'Split'
+  payments?: Payment[]; // Used for split payments
   customer?: Customer;
   userId: string;
   status: 'completed' | 'refunded';
@@ -73,17 +95,17 @@ export interface Order {
   };
 }
 
-export interface CartLabels {
-  subtotal: string;
-  discount: string;
-  tax: string; // Can include placeholder e.g., "Tax ({rate}%)"
-  total: string;
-}
-
 export interface ActivityLog {
   id: string;
   timestamp: string; // ISO string
   userId: string;
   action: string;
   details?: string;
+}
+
+export interface TimeClockEntry {
+  id: string;
+  userId: string;
+  clockInTime: string; // ISO string
+  clockOutTime?: string; // ISO string
 }

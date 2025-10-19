@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { Product, Category, Supplier, Customer, StoreSettings, Discount, User, ActivityLog } from '../types';
+import { Product, Category, Supplier, Customer, StoreSettings, Discount, User, ActivityLog, TimeClockEntry } from '../types';
 import { ROLE_PERMISSIONS } from '../constants';
 import ProductFormModal from './ProductFormModal';
 import CategoryFormModal from './CategoryFormModal';
@@ -8,8 +8,10 @@ import CustomerFormModal from './CustomerFormModal';
 import DiscountFormModal from './DiscountFormModal';
 import ActivityLogView from './ActivityLogView';
 import UserPinModal from './UserPinModal';
+import TimeClockManagement from './TimeClockManagement';
+import UserFormModal from './UserFormModal';
 
-type ActiveTab = 'products' | 'categories' | 'suppliers' | 'customers' | 'discounts' | 'settings' | 'users' | 'activity';
+type ActiveTab = 'products' | 'categories' | 'suppliers' | 'customers' | 'discounts' | 'settings' | 'users' | 'activity' | 'timesheets';
 
 interface ManagementViewProps {
     currentUser: User;
@@ -21,6 +23,7 @@ interface ManagementViewProps {
     storeSettings: StoreSettings;
     activityLogs: ActivityLog[];
     users: User[];
+    timeClockEntries: TimeClockEntry[];
     onSaveProduct: (product: Product) => void;
     onDeleteProduct: (productId: string) => void;
     onSaveCategory: (category: Category) => void;
@@ -32,17 +35,21 @@ interface ManagementViewProps {
     onSaveDiscount: (discount: Discount) => void;
     onDeleteDiscount: (discountId: string) => void;
     onSaveStoreSettings: (settings: StoreSettings) => void;
+    onSaveUser: (user: User) => void;
+    onDeleteUser: (userId: string) => void;
     onUpdateUserPin: (userId: string, newPin: string) => void;
+    onSaveTimeClockEntry: (entry: TimeClockEntry) => void;
+    onDeleteTimeClockEntry: (entryId: string) => void;
     onExportData: () => void;
     onImportData: (file: File) => void;
 }
 
 const ManagementView: React.FC<ManagementViewProps> = (props) => {
     const { 
-        currentUser, products, categories, suppliers, customers, discounts, storeSettings, activityLogs, users,
+        currentUser, products, categories, suppliers, customers, discounts, storeSettings, activityLogs, users, timeClockEntries,
         onSaveProduct, onDeleteProduct, onSaveCategory, onDeleteCategory, onSaveSupplier, onDeleteSupplier,
-        onSaveCustomer, onDeleteCustomer, onSaveDiscount, onDeleteDiscount, onSaveStoreSettings, onUpdateUserPin,
-        onExportData, onImportData
+        onSaveCustomer, onDeleteCustomer, onSaveDiscount, onDeleteDiscount, onSaveStoreSettings, onSaveUser, onDeleteUser, onUpdateUserPin,
+        onSaveTimeClockEntry, onDeleteTimeClockEntry, onExportData, onImportData
     } = props;
     const [activeTab, setActiveTab] = useState<ActiveTab>('products');
     
@@ -57,19 +64,39 @@ const ManagementView: React.FC<ManagementViewProps> = (props) => {
     const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
     const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
     const [editingDiscount, setEditingDiscount] = useState<Discount | null>(null);
+    const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState<User | null>(null);
     const [editingUserForPin, setEditingUserForPin] = useState<User | null>(null);
     
     // Form state for settings
     const [settingsData, setSettingsData] = useState<StoreSettings>(storeSettings);
+    const [logoPreview, setLogoPreview] = useState<string | null>(storeSettings.storeLogoUrl || null);
     const importInputRef = useRef<HTMLInputElement>(null);
     
     const categoryMap = useMemo(() => new Map(categories.map(c => [c.id, c.name])), [categories]);
 
     const handleSettingsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setSettingsData(prev => ({ ...prev, [name]: name === 'taxRate' ? parseFloat(value) / 100 : value }));
+        const { name, value, type, checked } = e.target;
+        if (type === 'checkbox') {
+            setSettingsData(prev => ({...prev, [name]: checked }));
+        } else {
+             setSettingsData(prev => ({ ...prev, [name]: name === 'taxRate' ? parseFloat(value) / 100 : value }));
+        }
     };
     
+    const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const result = reader.result as string;
+                setLogoPreview(result);
+                setSettingsData(prev => ({ ...prev, storeLogoUrl: result }));
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleSaveSettings = (e: React.FormEvent) => {
         e.preventDefault();
         onSaveStoreSettings(settingsData);
@@ -98,15 +125,17 @@ const ManagementView: React.FC<ManagementViewProps> = (props) => {
             case 'suppliers': setEditingSupplier(null); setIsSupplierModalOpen(true); break;
             case 'customers': setEditingCustomer(null); setIsCustomerModalOpen(true); break;
             case 'discounts': setEditingDiscount(null); setIsDiscountModalOpen(true); break;
+            case 'users': setEditingUser(null); setIsUserModalOpen(true); break;
         }
     };
-    const handleEdit = (item: Product | Category | Supplier | Customer | Discount, type: ActiveTab) => {
+    const handleEdit = (item: Product | Category | Supplier | Customer | Discount | User, type: ActiveTab) => {
         switch (type) {
             case 'products': setEditingProduct(item as Product); setIsProductModalOpen(true); break;
             case 'categories': setEditingCategory(item as Category); setIsCategoryModalOpen(true); break;
             case 'suppliers': setEditingSupplier(item as Supplier); setIsSupplierModalOpen(true); break;
             case 'customers': setEditingCustomer(item as Customer); setIsCustomerModalOpen(true); break;
             case 'discounts': setEditingDiscount(item as Discount); setIsDiscountModalOpen(true); break;
+            case 'users': setEditingUser(item as User); setIsUserModalOpen(true); break;
         }
     };
     const handleDelete = (id: string, type: ActiveTab) => {
@@ -117,6 +146,7 @@ const ManagementView: React.FC<ManagementViewProps> = (props) => {
                 case 'suppliers': onDeleteSupplier(id); break;
                 case 'customers': onDeleteCustomer(id); break;
                 case 'discounts': onDeleteDiscount(id); break;
+                case 'users': onDeleteUser(id); break;
             }
         }
     };
@@ -171,19 +201,80 @@ const ManagementView: React.FC<ManagementViewProps> = (props) => {
         <>
             <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 max-w-2xl mx-auto"> 
                 <form onSubmit={handleSaveSettings}> 
-                    <div className="space-y-6"> 
+                    <div className="space-y-6">
+                        <div>
+                           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Store Logo</label>
+                            <div className="mt-1 flex items-center gap-4">
+                                <img 
+                                    src={logoPreview || `https://picsum.photos/seed/${settingsData.storeName.replace(/\s+/g, '-') || 'storelogo'}/200`}
+                                    alt="Logo Preview" 
+                                    className="h-20 w-20 rounded-md object-cover bg-slate-200 dark:bg-slate-700"
+                                />
+                                <div>
+                                    <input 
+                                        type="file" 
+                                        id="logo-upload" 
+                                        accept="image/png, image/jpeg, image/webp" 
+                                        onChange={handleLogoChange} 
+                                        className="hidden" 
+                                    />
+                                    <label 
+                                        htmlFor="logo-upload"
+                                        className="cursor-pointer rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-1.5 px-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-600"
+                                    >
+                                        <span>Change Logo</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                         <div> 
                             <label htmlFor="storeName" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Store Name</label> 
                             <input type="text" name="storeName" id="storeName" value={settingsData.storeName} onChange={handleSettingsChange} required className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" /> 
                         </div> 
+                        <div>
+                            <label htmlFor="storeAddressLine1" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Address Line 1</label>
+                            <input type="text" name="storeAddressLine1" id="storeAddressLine1" value={settingsData.storeAddressLine1} onChange={handleSettingsChange} required className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                        </div>
+                        <div>
+                            <label htmlFor="storeAddressLine2" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Address Line 2 (Optional)</label>
+                            <input type="text" name="storeAddressLine2" id="storeAddressLine2" value={settingsData.storeAddressLine2 || ''} onChange={handleSettingsChange} className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="sm:col-span-1">
+                                <label htmlFor="storeCity" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">City</label>
+                                <input type="text" name="storeCity" id="storeCity" value={settingsData.storeCity} onChange={handleSettingsChange} required className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                            <div className="sm:col-span-1">
+                                <label htmlFor="storeState" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">State</label>
+                                <input type="text" name="storeState" id="storeState" value={settingsData.storeState} onChange={handleSettingsChange} required className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                            <div className="sm:col-span-1">
+                                <label htmlFor="storeZipCode" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">ZIP Code</label>
+                                <input type="text" name="storeZipCode" id="storeZipCode" value={settingsData.storeZipCode} onChange={handleSettingsChange} required className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                            </div>
+                        </div>
                         <div> 
-                            <label htmlFor="storeAddress" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Store Address</label> 
-                            <input type="text" name="storeAddress" id="storeAddress" value={settingsData.storeAddress} onChange={handleSettingsChange} required className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" /> 
-                        </div> 
+                            <label htmlFor="storeMobile" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Shop Mobile Number</label> 
+                            <input type="tel" name="storeMobile" id="storeMobile" value={settingsData.storeMobile || ''} onChange={handleSettingsChange} className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" /> 
+                        </div>
                         <div> 
                             <label htmlFor="taxRate" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tax Rate (%)</label> 
                             <input type="number" name="taxRate" id="taxRate" value={settingsData.taxRate * 100} onChange={handleSettingsChange} required min="0" step="0.01" className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" /> 
-                        </div> 
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
+                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Show logo & name on invoice</span>
+                            <label htmlFor="showLogoOnInvoice" className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    id="showLogoOnInvoice"
+                                    name="showLogoOnInvoice"
+                                    className="sr-only peer"
+                                    checked={settingsData.showLogoOnInvoice}
+                                    onChange={handleSettingsChange}
+                                />
+                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
                     </div> 
                     <div className="mt-8 flex justify-end"> 
                         <button type="submit" className="bg-indigo-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors">Save Settings</button> 
@@ -217,45 +308,61 @@ const ManagementView: React.FC<ManagementViewProps> = (props) => {
             )}
         </>
     );
-    const renderUsersTable = () => (
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-x-auto">
-            <table className="w-full text-sm text-left text-slate-500 dark:text-slate-400">
-                <thead className="text-xs text-slate-700 dark:text-slate-300 uppercase bg-slate-50 dark:bg-slate-700/50">
-                    <tr>
-                        <th scope="col" className="px-6 py-3">User Name</th>
-                        <th scope="col" className="px-6 py-3">Role</th>
-                        <th scope="col" className="px-6 py-3"><span className="sr-only">Actions</span></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {users.map(user => (
-                        <tr key={user.id} className="bg-white dark:bg-slate-800 border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">
-                            <th scope="row" className="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">{user.name}</th>
-                            <td className="px-6 py-4">
-                                <div className="relative group inline-block">
-                                    <span className="cursor-default border-b border-dotted border-slate-400 dark:border-slate-500">{user.role}</span>
-                                    {/* Tooltip */}
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-4 bg-slate-800 text-slate-100 text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 dark:bg-slate-900 border dark:border-slate-700">
-                                        <h4 className="font-bold mb-2 text-base">{user.role} Permissions</h4>
-                                        <ul className="list-disc list-inside space-y-1 text-left">
-                                            {ROLE_PERMISSIONS[user.role].map((permission, index) => (
-                                                <li key={index}>{permission}</li>
-                                            ))}
-                                        </ul>
-                                        {/* Arrow */}
-                                        <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-slate-800 dark:border-t-slate-900"></div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                                <button onClick={() => setEditingUserForPin(user)} className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">Change PIN</button>
-                            </td>
+    const renderUsersTable = () => {
+        const adminCount = users.filter(u => u.role === 'Admin').length;
+
+        return (
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-x-auto">
+                <table className="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                    <thead className="text-xs text-slate-700 dark:text-slate-300 uppercase bg-slate-50 dark:bg-slate-700/50">
+                        <tr>
+                            <th scope="col" className="px-6 py-3">User Name</th>
+                            <th scope="col" className="px-6 py-3">Role</th>
+                            <th scope="col" className="px-6 py-3 text-right">Actions</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
+                    </thead>
+                    <tbody>
+                        {users.map(user => {
+                             const isLastAdmin = user.role === 'Admin' && adminCount <= 1;
+                             return (
+                                <tr key={user.id} className="bg-white dark:bg-slate-800 border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">
+                                    <th scope="row" className="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">{user.name}</th>
+                                    <td className="px-6 py-4">
+                                        <div className="relative group inline-block">
+                                            <span className="cursor-default border-b border-dotted border-slate-400 dark:border-slate-500">{user.role}</span>
+                                            {/* Tooltip */}
+                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-4 bg-slate-800 text-slate-100 text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 dark:bg-slate-900 border dark:border-slate-700">
+                                                <h4 className="font-bold mb-2 text-base">{user.role} Permissions</h4>
+                                                <ul className="list-disc list-inside space-y-1 text-left">
+                                                    {ROLE_PERMISSIONS[user.role].map((permission, index) => (
+                                                        <li key={index}>{permission}</li>
+                                                    ))}
+                                                </ul>
+                                                {/* Arrow */}
+                                                <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-slate-800 dark:border-t-slate-900"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-right space-x-2 whitespace-nowrap">
+                                        <button onClick={() => handleEdit(user, 'users')} className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">Edit</button>
+                                        <button onClick={() => setEditingUserForPin(user)} className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">Change PIN</button>
+                                        <button
+                                            onClick={() => handleDelete(user.id, 'users')}
+                                            disabled={isLastAdmin}
+                                            title={isLastAdmin ? "Cannot delete the last admin" : ""}
+                                            className={`font-medium ${isLastAdmin ? 'text-slate-400 cursor-not-allowed' : 'text-red-600 dark:text-red-400 hover:underline'}`}
+                                        >
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            )
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        );
+    }
     const renderActivityLog = () => <ActivityLogView logs={activityLogs} users={users} />;
 
     const TAB_CONFIG: { [key in ActiveTab]?: { title: string; content: () => React.JSX.Element; onAdd?: () => void } } = {
@@ -264,8 +371,16 @@ const ManagementView: React.FC<ManagementViewProps> = (props) => {
         suppliers: { title: 'Suppliers', content: renderSuppliersTable, onAdd: () => handleAddNew('suppliers') },
         customers: { title: 'Customers', content: renderCustomersTable, onAdd: () => handleAddNew('customers') },
         discounts: { title: 'Discounts', content: renderDiscountsTable, onAdd: () => handleAddNew('discounts') },
+        timesheets: currentUser.role !== 'Cashier' ? { title: 'Timesheets', content: () => (
+            <TimeClockManagement
+                timeClockEntries={timeClockEntries}
+                users={users}
+                onSave={onSaveTimeClockEntry}
+                onDelete={onDeleteTimeClockEntry}
+            />
+        )} : undefined,
         settings: { title: 'Settings', content: renderSettingsForm },
-        users: currentUser.role === 'Admin' ? { title: 'Users', content: renderUsersTable } : undefined,
+        users: currentUser.role === 'Admin' ? { title: 'Users', content: renderUsersTable, onAdd: () => handleAddNew('users') } : undefined,
         activity: currentUser.role === 'Admin' ? { title: 'Activity Log', content: renderActivityLog } : undefined,
     };
     
@@ -309,6 +424,7 @@ const ManagementView: React.FC<ManagementViewProps> = (props) => {
             {isSupplierModalOpen && <SupplierFormModal supplier={editingSupplier} onClose={() => setIsSupplierModalOpen(false)} onSave={onSaveSupplier} />}
             {isCustomerModalOpen && <CustomerFormModal customer={editingCustomer} onClose={() => setIsCustomerModalOpen(false)} onSave={onSaveCustomer} />}
             {isDiscountModalOpen && <DiscountFormModal discount={editingDiscount} onClose={() => setIsDiscountModalOpen(false)} onSave={onSaveDiscount} />}
+            {isUserModalOpen && <UserFormModal user={editingUser} onClose={() => setIsUserModalOpen(false)} onSave={onSaveUser} />}
             {editingUserForPin && (
                 <UserPinModal
                     user={editingUserForPin}
