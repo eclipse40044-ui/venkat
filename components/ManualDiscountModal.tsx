@@ -6,9 +6,10 @@ interface ManualDiscountModalProps {
     currentDiscount: DiscountValue | null;
     onClose: () => void;
     onApply: (discount: DiscountValue) => void;
+    currencySymbol: string;
 }
 
-const ManualDiscountModal: React.FC<ManualDiscountModalProps> = ({ currentDiscount, onClose, onApply }) => {
+const ManualDiscountModal: React.FC<ManualDiscountModalProps> = ({ currentDiscount, onClose, onApply, currencySymbol }) => {
     const [type, setType] = useState<'fixed' | 'percentage'>(currentDiscount?.type || 'fixed');
     const [value, setValue] = useState<string>(currentDiscount?.value?.toString() || '');
     const inputRef = useRef<HTMLInputElement>(null);
@@ -45,7 +46,7 @@ const ManualDiscountModal: React.FC<ManualDiscountModalProps> = ({ currentDiscou
                                     onChange={() => setType('fixed')}
                                     className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-600"
                                 />
-                                <span className="text-slate-700 dark:text-slate-200">Fixed Amount ($)</span>
+                                <span className="text-slate-700 dark:text-slate-200">Fixed Amount ({currencySymbol})</span>
                             </label>
                              <label className="flex items-center gap-2 cursor-pointer">
                                 <input
@@ -75,7 +76,7 @@ const ManualDiscountModal: React.FC<ManualDiscountModalProps> = ({ currentDiscou
                                 step="0.01"
                                 className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 pl-7"
                             />
-                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400">{type === 'fixed' ? '$' : '%'}</span>
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400">{type === 'fixed' ? currencySymbol : '%'}</span>
                         </div>
                     </div>
                     

@@ -1,4 +1,5 @@
 
+// FIX: Removed circular import of 'Category' from './types' which was causing a conflict.
 export interface Category {
   id: string;
   name: string;
@@ -45,6 +46,13 @@ export interface Customer {
   email: string;
 }
 
+export interface PrinterSettings {
+  paperWidth: '58mm' | '80mm';
+  copies: number;
+  printAfterSale: boolean;
+  fontFamily: string;
+}
+
 export interface StoreSettings {
     storeName: string;
     storeAddressLine1: string;
@@ -55,7 +63,10 @@ export interface StoreSettings {
     storeMobile?: string;
     storeLogoUrl?: string;
     taxRate: number; // e.g., 0.08 for 8%
+    isTaxEnabled: boolean;
     showLogoOnInvoice: boolean;
+    currency: string; // e.g., 'USD'
+    printerSettings: PrinterSettings;
 }
 
 export interface User {

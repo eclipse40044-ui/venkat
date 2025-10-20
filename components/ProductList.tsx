@@ -94,9 +94,10 @@ interface ProductItemProps {
     onAddToCart: (product: Product) => void;
     cartQuantity: number;
     searchTerm: string;
+    formatCurrency: (amount: number) => string;
 }
 
-const ProductGridItem: React.FC<ProductItemProps> = ({ product, onAddToCart, cartQuantity, searchTerm }) => {
+const ProductGridItem: React.FC<ProductItemProps> = ({ product, onAddToCart, cartQuantity, searchTerm, formatCurrency }) => {
     const isOutOfStock = product.stock <= 0;
     const isLowStock = !isOutOfStock && product.stock <= product.lowStockThreshold;
     const canAddToCart = product.unit === 'lb' ? product.stock > 0 : product.stock > cartQuantity;
@@ -122,7 +123,7 @@ const ProductGridItem: React.FC<ProductItemProps> = ({ product, onAddToCart, car
                 </h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">{product.stock} in stock</p>
                 <div className="flex justify-between items-center mt-auto">
-                    <span className="text-xl font-bold text-slate-900 dark:text-white">${product.price.toFixed(2)}{product.unit === 'lb' ? '/lb' : ''}</span>
+                    <span className="text-xl font-bold text-slate-900 dark:text-white">{formatCurrency(product.price)}{product.unit === 'lb' ? '/lb' : ''}</span>
                     <button 
                         onClick={() => onAddToCart(product)}
                         disabled={!canAddToCart || isOutOfStock}
@@ -139,7 +140,7 @@ const ProductGridItem: React.FC<ProductItemProps> = ({ product, onAddToCart, car
     );
 };
 
-const ProductListItem: React.FC<ProductItemProps> = ({ product, onAddToCart, cartQuantity, searchTerm }) => {
+const ProductListItem: React.FC<ProductItemProps> = ({ product, onAddToCart, cartQuantity, searchTerm, formatCurrency }) => {
     const isOutOfStock = product.stock <= 0;
     const canAddToCart = product.unit === 'lb' ? product.stock > 0 : product.stock > cartQuantity;
 
@@ -153,7 +154,7 @@ const ProductListItem: React.FC<ProductItemProps> = ({ product, onAddToCart, car
                 <p className="text-sm text-slate-500 dark:text-slate-400">{product.stock} in stock</p>
             </div>
             <div className="flex-shrink-0 text-right pr-2">
-                <span className="text-lg font-bold text-slate-800 dark:text-slate-100">${product.price.toFixed(2)}{product.unit === 'lb' ? '/lb' : ''}</span>
+                <span className="text-lg font-bold text-slate-800 dark:text-slate-100">{formatCurrency(product.price)}{product.unit === 'lb' ? '/lb' : ''}</span>
             </div>
             <button
                 onClick={() => onAddToCart(product)}
@@ -176,9 +177,10 @@ interface ProductListProps {
     onAddToCart: (product: Product) => void;
     viewMode: 'grid' | 'list';
     searchTerm: string;
+    formatCurrency: (amount: number) => string;
 }
 
-const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, cartItems, viewMode, searchTerm }) => {
+const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, cartItems, viewMode, searchTerm, formatCurrency }) => {
     if (products.length === 0) {
         return (
             <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-2xl shadow-md">
@@ -204,6 +206,7 @@ const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, cartIt
                             onAddToCart={onAddToCart}
                             cartQuantity={cartItem?.quantity || 0}
                             searchTerm={searchTerm}
+                            formatCurrency={formatCurrency}
                         />
                     );
                 })}
@@ -222,6 +225,7 @@ const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart, cartIt
                         onAddToCart={onAddToCart}
                         cartQuantity={cartItem?.quantity || 0}
                         searchTerm={searchTerm}
+                        formatCurrency={formatCurrency}
                     />
                 )
             })}

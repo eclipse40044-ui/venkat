@@ -1,53 +1,42 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Order, StoreSettings } from '../types';
 
 interface InvoiceModalProps {
     order: Order;
     storeSettings: StoreSettings;
     onClose: () => void;
+    formatCurrency: (amount: number) => string;
+    autoPrint: boolean;
 }
 
-const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, storeSettings, onClose }) => {
+const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, storeSettings, onClose, formatCurrency, autoPrint }) => {
     const { id: invoiceId, date, items: cartItems, subtotal, taxAmount, total, paymentMethod, customer, appliedDiscount } = order;
     const invoiceDate = new Date(date);
+    const { printerSettings } = storeSettings;
 
     const handlePrint = () => {
         window.print();
     };
+    
+    useEffect(() => {
+        if (autoPrint) {
+            const timer = setTimeout(() => {
+                handlePrint();
+            }, 500); // Delay to allow modal to render fully
+            return () => clearTimeout(timer);
+        }
+    }, [autoPrint]);
+
+
+    const paperWidthClass = printerSettings.paperWidth === '58mm' ? 'paper-58mm' : 'paper-80mm';
+    
+    const receiptStyle: React.CSSProperties = {
+        '--receipt-font-family': storeSettings.printerSettings.fontFamily,
+    } as React.CSSProperties;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
-            <style>
-                {`
-                @media print {
-                    body * {
-                        visibility: hidden;
-                    }
-                    #invoice-section, #invoice-section * {
-                        visibility: visible;
-                    }
-                    #invoice-section {
-                        position: absolute;
-                        left: 0;
-                        top: 0;
-                        width: 100%;
-                        background: white !important;
-                        color: black !important;
-                    }
-                    .dark #invoice-section * {
-                        color: black !important;
-                    }
-                    #invoice-section img {
-                        -webkit-print-color-adjust: exact !important;
-                        color-adjust: exact !important;
-                    }
-                    .no-print {
-                        display: none;
-                    }
-                }
-                `}
-            </style>
-            <div id="invoice-section" className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl p-8 max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4 no-print">
+            <div id="invoice-section" style={receiptStyle} className={`printable-area ${paperWidthClass} bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl p-8 max-h-[90vh] flex flex-col`}>
                 <div className="flex-grow overflow-y-auto">
                     <div className="flex justify-between items-start mb-8">
                         <div>
@@ -95,8 +84,8 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, storeSettings, onClo
                                 <tr key={item.id} className={`border-b border-slate-100 dark:border-slate-800 ${item.quantity < 0 ? 'text-red-600 dark:text-red-400' : ''}`}>
                                     <td className="py-3">{item.name} {item.quantity < 0 ? '(Return)' : ''}</td>
                                     <td className="py-3 text-center">{item.quantity}</td>
-                                    <td className="py-3 text-right">${item.price.toFixed(2)}</td>
-                                    <td className="py-3 text-right">${(item.price * item.quantity).toFixed(2)}</td>
+                                    <td className="py-3 text-right">{formatCurrency(item.price)}</td>
+                                    <td className="py-3 text-right">{formatCurrency(item.price * item.quantity)}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -106,21 +95,23 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, storeSettings, onClo
                         <div className="w-full max-w-xs space-y-2">
                              <div className="flex justify-between text-slate-600 dark:text-slate-300">
                                 <span>Subtotal</span>
-                                <span className="font-medium">${subtotal.toFixed(2)}</span>
+                                <span className="font-medium">{formatCurrency(subtotal)}</span>
                             </div>
                              {appliedDiscount && (
                                 <div className="flex justify-between text-green-600 dark:text-green-400">
                                     <span>Discount ({appliedDiscount.name})</span>
-                                    <span className="font-medium">-${appliedDiscount.amount.toFixed(2)}</span>
+                                    <span className="font-medium">-{formatCurrency(appliedDiscount.amount)}</span>
                                 </div>
                             )}
-                            <div className="flex justify-between text-slate-600 dark:text-slate-300">
-                                <span>Tax ({ (storeSettings.taxRate * 100).toFixed(0) }%)</span>
-                                <span className="font-medium">${taxAmount.toFixed(2)}</span>
-                            </div>
+                            {taxAmount > 0 && (
+                                <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                                    <span>Tax ({ (storeSettings.taxRate * 100).toFixed(0) }%)</span>
+                                    <span className="font-medium">{formatCurrency(taxAmount)}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between text-2xl font-bold text-slate-800 dark:text-slate-100 mt-2 pt-2 border-t-2 border-slate-200 dark:border-slate-700">
                                 <span>{total < 0 ? 'Total Refund' : 'Total Due'}</span>
-                                <span>${Math.abs(total).toFixed(2)}</span>
+                                <span>{formatCurrency(Math.abs(total))}</span>
                             </div>
                             <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
                                 {(order.payments && order.payments.length > 1) ? (
@@ -132,7 +123,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, storeSettings, onClo
                                         {order.payments.map((p, i) => (
                                             <div key={i} className="flex justify-between text-sm text-slate-500 dark:text-slate-400 pl-4">
                                                 <span>- {p.method}</span>
-                                                <span>${p.amount.toFixed(2)}</span>
+                                                <span>{formatCurrency(p.amount)}</span>
                                             </div>
                                         ))}
                                     </>

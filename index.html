@@ -42,6 +42,51 @@
       .dark ::-webkit-scrollbar-thumb:hover {
         background: #64748b; /* slate-500 */
       }
+      @media print {
+          body * {
+              visibility: hidden;
+          }
+          .printable-area, .printable-area * {
+              visibility: visible;
+          }
+          .printable-area {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+              color: black !important;
+              background: white !important;
+              font-family: var(--receipt-font-family, 'Courier New', monospace);
+          }
+          .dark .printable-area * {
+              color: black !important;
+          }
+          .printable-area img {
+              -webkit-print-color-adjust: exact !important;
+              color-adjust: exact !important;
+          }
+          .no-print {
+              display: none !important;
+          }
+          
+          /* Paper width styles */
+          .paper-80mm {
+            width: 80mm;
+            font-size: 12px;
+            padding: 4px;
+          }
+          .paper-58mm {
+            width: 58mm;
+            font-size: 10px;
+            padding: 4px;
+          }
+          .paper-80mm .text-3xl { font-size: 24px; }
+          .paper-58mm .text-3xl { font-size: 18px; }
+          .paper-80mm .text-2xl { font-size: 20px; }
+          .paper-58mm .text-2xl { font-size: 16px; }
+          .paper-58mm .py-3 { padding-top: 6px; padding-bottom: 6px; }
+          .paper-58mm .p-8 { padding: 12px; }
+      }
     </style>
 <script type="importmap">
 {

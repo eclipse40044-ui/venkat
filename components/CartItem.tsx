@@ -5,9 +5,10 @@ interface CartItemProps {
     item: CartItem;
     onUpdateQuantity: (productId: string, quantity: number) => void;
     onRemoveFromCart: (productId: string) => void;
+    formatCurrency: (amount: number) => string;
 }
 
-const CartItemComponent: React.FC<CartItemProps> = ({ item, onUpdateQuantity, onRemoveFromCart }) => {
+const CartItemComponent: React.FC<CartItemProps> = ({ item, onUpdateQuantity, onRemoveFromCart, formatCurrency }) => {
     const [inputValue, setInputValue] = useState(item.quantity.toString());
     const isWeighted = item.unit === 'lb';
 
@@ -46,7 +47,7 @@ const CartItemComponent: React.FC<CartItemProps> = ({ item, onUpdateQuantity, on
             <div className="flex-grow">
                 <p className="font-semibold text-slate-800 dark:text-slate-100">{item.name}</p>
                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                    ${item.price.toFixed(2)}{isWeighted && ` / ${item.unit}`}
+                    {formatCurrency(item.price)}{isWeighted && ` / ${item.unit}`}
                 </p>
                  <div className="flex items-center gap-2 mt-1">
                     {!isWeighted && (
@@ -81,7 +82,7 @@ const CartItemComponent: React.FC<CartItemProps> = ({ item, onUpdateQuantity, on
                 </div>
             </div>
             <div className="flex flex-col items-end">
-                <span className="font-bold text-slate-800 dark:text-slate-100">${(item.price * item.quantity).toFixed(2)}</span>
+                <span className="font-bold text-slate-800 dark:text-slate-100">{formatCurrency(item.price * item.quantity)}</span>
                 <button 
                     onClick={() => onRemoveFromCart(item.id)} 
                     className="mt-1 text-slate-400 dark:text-slate-500 hover:text-red-500"

@@ -7,11 +7,12 @@ interface OrdersViewProps {
     currentUser: User;
     onReprint: (order: Order) => void;
     onRefund: (orderId: string) => void;
+    formatCurrency: (amount: number) => string;
 }
 
 const ITEMS_PER_PAGE = 10;
 
-const OrdersView: React.FC<OrdersViewProps> = ({ orders, users, currentUser, onReprint, onRefund }) => {
+const OrdersView: React.FC<OrdersViewProps> = ({ orders, users, currentUser, onReprint, onRefund, formatCurrency }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
     const [paymentFilter, setPaymentFilter] = useState('');
@@ -146,7 +147,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({ orders, users, currentUser, onR
                                 <td className="px-6 py-4">{order.customer?.name || 'Walk-in'}</td>
                                 <td className="px-6 py-4">{userMap.get(order.userId) || 'Unknown'}</td>
                                 <td className="px-6 py-4 text-center">{order.items.reduce((sum, item) => sum + item.quantity, 0)}</td>
-                                <td className="px-6 py-4 text-right font-semibold">${order.total.toFixed(2)}</td>
+                                <td className="px-6 py-4 text-right font-semibold">{formatCurrency(order.total)}</td>
                                 <td className="px-6 py-4">{order.paymentMethod}</td>
                                 <td className="px-6 py-4 text-center">
                                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${

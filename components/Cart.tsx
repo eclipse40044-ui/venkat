@@ -1,11 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { CartItem, Discount } from '../types';
+import { CartItem, Discount, StoreSettings } from '../types';
 import CartItemComponent from './CartItem';
 import ManualDiscountModal from './ManualDiscountModal';
 
 interface CartProps {
     cartItems: CartItem[];
-    taxRate: number;
     discounts: Discount[];
     appliedDiscountId: string;
     onApplyDiscount: (discountId: string) => void;
@@ -20,18 +19,21 @@ interface CartProps {
     onInitiateSplitBill: () => void;
     cartMode: 'sale' | 'return';
     onSetCartMode: (mode: 'sale' | 'return') => void;
+    formatCurrency: (amount: number) => string;
+    storeSettings: StoreSettings;
+    currencySymbol: string;
 }
 
 const Cart: React.FC<CartProps> = (props) => {
     const { 
         cartItems, 
-        taxRate, 
         discounts, appliedDiscountId, onApplyDiscount,
         manualDiscount, onSetManualDiscount,
         onUpdateQuantity, onRemoveFromCart, onCheckout, onClearCart,
         walkInCustomerPhone, onPhoneChange,
         onInitiateSplitBill,
-        cartMode, onSetCartMode
+        cartMode, onSetCartMode,
+        formatCurrency, storeSettings, currencySymbol
     } = props;
     
     const [isManualDiscountModalOpen, setIsManualDiscountModalOpen] = useState(false);
@@ -68,11 +70,13 @@ const Cart: React.FC<CartProps> = (props) => {
         }
 
         const totalAfterDiscount = subtotal - discountAmount;
-        const taxAmount = (totalAfterDiscount > 0 ? totalAfterDiscount : 0) * taxRate;
+        const taxAmount = storeSettings.isTaxEnabled && totalAfterDiscount > 0
+            ? totalAfterDiscount * storeSettings.taxRate
+            : 0;
         const total = totalAfterDiscount + taxAmount;
         
         return { subtotal, discountAmount, totalAfterDiscount, taxAmount, total, appliedDiscountName };
-    }, [cartItems, taxRate, discounts, appliedDiscountId, manualDiscount]);
+    }, [cartItems, storeSettings.taxRate, storeSettings.isTaxEnabled, discounts, appliedDiscountId, manualDiscount]);
 
     const renderPaymentSection = () => {
         if (total > 0) {
@@ -166,6 +170,7 @@ const Cart: React.FC<CartProps> = (props) => {
                                 item={item}
                                 onUpdateQuantity={onUpdateQuantity}
                                 onRemoveFromCart={onRemoveFromCart}
+                                formatCurrency={formatCurrency}
                             />
                         ))}
                     </ul>
@@ -191,7 +196,7 @@ const Cart: React.FC<CartProps> = (props) => {
                         <div className="space-y-2 text-slate-600 dark:text-slate-300">
                             <div className="flex justify-between">
                                 <span>Subtotal</span>
-                                <span className="font-medium">${subtotal.toFixed(2)}</span>
+                                <span className="font-medium">{formatCurrency(subtotal)}</span>
                             </div>
 
                              <div className="flex justify-between items-center">
@@ -239,17 +244,19 @@ const Cart: React.FC<CartProps> = (props) => {
                                             </button>
                                         )}
                                     </div>
-                                    <span className="font-medium">-${discountAmount.toFixed(2)}</span>
+                                    <span className="font-medium">-{formatCurrency(discountAmount)}</span>
                                 </div>
                             )}
                             
-                            <div className="flex justify-between">
-                                <span>Tax ({(taxRate * 100).toFixed(0)}%)</span>
-                                <span className="font-medium">${taxAmount.toFixed(2)}</span>
-                            </div>
+                            {storeSettings.isTaxEnabled && (
+                                <div className="flex justify-between">
+                                    <span>Tax ({(storeSettings.taxRate * 100).toFixed(0)}%)</span>
+                                    <span className="font-medium">{formatCurrency(taxAmount)}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between text-xl font-bold text-slate-800 dark:text-slate-100 mt-2">
                                 <span>{total < 0 ? 'Total Refund' : 'Total'}</span>
-                                <span>${Math.abs(total).toFixed(2)}</span>
+                                <span>{formatCurrency(Math.abs(total))}</span>
                             </div>
                         </div>
                         <div className="mt-6">
@@ -268,6 +275,7 @@ const Cart: React.FC<CartProps> = (props) => {
                         onApplyDiscount(''); // Clear dropdown selection
                         setIsManualDiscountModalOpen(false);
                     }}
+                    currencySymbol={currencySymbol}
                 />
             )}
         </div>

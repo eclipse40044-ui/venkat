@@ -48,6 +48,30 @@ export const MOCK_CUSTOMERS: Customer[] = [
     { id: 'cust-002', name: 'Jane Smith', phone: '555-5678', email: 'jane.smith@example.com' },
 ];
 
+export const CURRENCIES = [
+    { code: 'USD', symbol: '$', name: 'US Dollar', symbolBefore: true },
+    { code: 'EUR', symbol: '€', name: 'Euro', symbolBefore: false },
+    { code: 'JPY', symbol: '¥', name: 'Japanese Yen', symbolBefore: true },
+    { code: 'GBP', symbol: '£', name: 'British Pound', symbolBefore: true },
+    { code: 'AUD', symbol: '$', name: 'Australian Dollar', symbolBefore: true },
+    { code: 'CAD', symbol: '$', name: 'Canadian Dollar', symbolBefore: true },
+    { code: 'CHF', symbol: 'CHF', name: 'Swiss Franc', symbolBefore: true },
+    { code: 'CNY', symbol: '¥', name: 'Chinese Yuan', symbolBefore: true },
+    { code: 'INR', symbol: 'Rs', name: 'Indian Rupee', symbolBefore: true },
+    { code: 'KWD', symbol: 'KD', name: 'Kuwaiti Dinar', symbolBefore: true },
+];
+
+export const RECEIPT_FONTS = [
+    { name: 'Courier New (monospace)', value: "'Courier New', Courier, monospace" },
+    { name: 'Lucida Console (monospace)', value: "'Lucida Console', Monaco, monospace" },
+    { name: 'Consolas (monospace)', value: "Consolas, 'Lucida Console', monospace" },
+    { name: 'Roboto (sans-serif)', value: "'Roboto', sans-serif" },
+    { name: 'Arial (sans-serif)', value: "Arial, 'Helvetica Neue', Helvetica, sans-serif" },
+    { name: 'Verdana (sans-serif)', value: "Verdana, Geneva, sans-serif" },
+    { name: 'Times New Roman (serif)', value: "'Times New Roman', Times, serif" },
+    { name: 'Georgia (serif)', value: "Georgia, serif" },
+];
+
 export const MOCK_STORE_SETTINGS: StoreSettings = {
     storeName: 'Yazh Shop',
     storeAddressLine1: '123 Market St',
@@ -58,7 +82,15 @@ export const MOCK_STORE_SETTINGS: StoreSettings = {
     storeMobile: '987-654-3210',
     storeLogoUrl: '',
     taxRate: 0.08, // 8%
+    isTaxEnabled: true,
     showLogoOnInvoice: true,
+    currency: 'KWD',
+    printerSettings: {
+        paperWidth: '80mm',
+        copies: 1,
+        printAfterSale: true,
+        fontFamily: "'Courier New', Courier, monospace",
+    },
 };
 
 export const MOCK_DISCOUNTS: Discount[] = [
