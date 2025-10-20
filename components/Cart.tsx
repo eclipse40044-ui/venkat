@@ -1,10 +1,13 @@
+
 import React, { useMemo, useState } from 'react';
 import { CartItem, Discount, StoreSettings } from '../types';
 import CartItemComponent from './CartItem';
 import ManualDiscountModal from './ManualDiscountModal';
+import { formatCurrency } from '../utils';
 
 interface CartProps {
     cartItems: CartItem[];
+    storeSettings: StoreSettings;
     discounts: Discount[];
     appliedDiscountId: string;
     onApplyDiscount: (discountId: string) => void;
@@ -19,21 +22,18 @@ interface CartProps {
     onInitiateSplitBill: () => void;
     cartMode: 'sale' | 'return';
     onSetCartMode: (mode: 'sale' | 'return') => void;
-    formatCurrency: (amount: number) => string;
-    storeSettings: StoreSettings;
-    currencySymbol: string;
 }
 
 const Cart: React.FC<CartProps> = (props) => {
     const { 
         cartItems, 
+        storeSettings,
         discounts, appliedDiscountId, onApplyDiscount,
         manualDiscount, onSetManualDiscount,
         onUpdateQuantity, onRemoveFromCart, onCheckout, onClearCart,
         walkInCustomerPhone, onPhoneChange,
         onInitiateSplitBill,
-        cartMode, onSetCartMode,
-        formatCurrency, storeSettings, currencySymbol
+        cartMode, onSetCartMode
     } = props;
     
     const [isManualDiscountModalOpen, setIsManualDiscountModalOpen] = useState(false);
@@ -70,9 +70,7 @@ const Cart: React.FC<CartProps> = (props) => {
         }
 
         const totalAfterDiscount = subtotal - discountAmount;
-        const taxAmount = storeSettings.isTaxEnabled && totalAfterDiscount > 0
-            ? totalAfterDiscount * storeSettings.taxRate
-            : 0;
+        const taxAmount = storeSettings.isTaxEnabled ? ((totalAfterDiscount > 0 ? totalAfterDiscount : 0) * storeSettings.taxRate) : 0;
         const total = totalAfterDiscount + taxAmount;
         
         return { subtotal, discountAmount, totalAfterDiscount, taxAmount, total, appliedDiscountName };
@@ -170,7 +168,7 @@ const Cart: React.FC<CartProps> = (props) => {
                                 item={item}
                                 onUpdateQuantity={onUpdateQuantity}
                                 onRemoveFromCart={onRemoveFromCart}
-                                formatCurrency={formatCurrency}
+                                storeSettings={storeSettings}
                             />
                         ))}
                     </ul>
@@ -195,12 +193,12 @@ const Cart: React.FC<CartProps> = (props) => {
                     <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
                         <div className="space-y-2 text-slate-600 dark:text-slate-300">
                             <div className="flex justify-between">
-                                <span>Subtotal</span>
-                                <span className="font-medium">{formatCurrency(subtotal)}</span>
+                                <span>{storeSettings.cartLabels.subtotal}</span>
+                                <span className="font-medium">{formatCurrency(subtotal, storeSettings)}</span>
                             </div>
 
                              <div className="flex justify-between items-center">
-                                <label htmlFor="discount-select" className="text-sm">Discount</label>
+                                <label htmlFor="discount-select" className="text-sm">{storeSettings.cartLabels.discount}</label>
                                 <div className="flex items-center gap-2">
                                     <select 
                                         id="discount-select"
@@ -244,19 +242,19 @@ const Cart: React.FC<CartProps> = (props) => {
                                             </button>
                                         )}
                                     </div>
-                                    <span className="font-medium">-{formatCurrency(discountAmount)}</span>
+                                    <span className="font-medium">-{formatCurrency(discountAmount, storeSettings)}</span>
                                 </div>
                             )}
                             
                             {storeSettings.isTaxEnabled && (
                                 <div className="flex justify-between">
-                                    <span>Tax ({(storeSettings.taxRate * 100).toFixed(0)}%)</span>
-                                    <span className="font-medium">{formatCurrency(taxAmount)}</span>
+                                    <span>{storeSettings.cartLabels.tax.replace('{rate}', (storeSettings.taxRate * 100).toFixed(0))}</span>
+                                    <span className="font-medium">{formatCurrency(taxAmount, storeSettings)}</span>
                                 </div>
                             )}
                             <div className="flex justify-between text-xl font-bold text-slate-800 dark:text-slate-100 mt-2">
-                                <span>{total < 0 ? 'Total Refund' : 'Total'}</span>
-                                <span>{formatCurrency(Math.abs(total))}</span>
+                                <span>{total < 0 ? 'Total Refund' : storeSettings.cartLabels.total}</span>
+                                <span>{formatCurrency(Math.abs(total), storeSettings)}</span>
                             </div>
                         </div>
                         <div className="mt-6">
@@ -275,7 +273,7 @@ const Cart: React.FC<CartProps> = (props) => {
                         onApplyDiscount(''); // Clear dropdown selection
                         setIsManualDiscountModalOpen(false);
                     }}
-                    currencySymbol={currencySymbol}
+                    storeSettings={storeSettings}
                 />
             )}
         </div>

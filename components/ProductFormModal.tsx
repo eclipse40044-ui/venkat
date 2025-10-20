@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { Product, Category, Supplier } from '../types';
+import { Product, Category, Supplier, StoreSettings } from '../types';
 import BarcodeScanner from './BarcodeScanner';
+import CameraCapture from './CameraCapture';
 
 interface ProductFormModalProps {
     product: Product | null;
@@ -9,9 +9,10 @@ interface ProductFormModalProps {
     suppliers: Supplier[];
     onClose: () => void;
     onSave: (product: Product) => void;
+    storeSettings: StoreSettings;
 }
 
-const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, categories, suppliers, onClose, onSave }) => {
+const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, categories, suppliers, onClose, onSave, storeSettings }) => {
     const [formData, setFormData] = useState<Omit<Product, 'id' | 'imageUrl' | 'costPrice'> & { id?: string; imageUrl?: string; costPrice?: number }>({
         name: '',
         price: 0,
@@ -27,8 +28,9 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, categories
     });
     
     const [imagePreview, setImagePreview] = useState<string | null>(product?.imageUrl || null);
+    const [isBarcodeScannerOpen, setIsBarcodeScannerOpen] = useState(false);
+    const [isCameraOpen, setIsCameraOpen] = useState(false);
     const firstInputRef = useRef<HTMLInputElement>(null);
-    const [isScannerOpen, setIsScannerOpen] = useState(false);
 
     useEffect(() => {
         firstInputRef.current?.focus();
@@ -52,9 +54,15 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, categories
         }
     };
 
-    const handleBarcodeScanned = (scannedBarcode: string) => {
+    const handleBarcodeScanSuccess = (scannedBarcode: string) => {
         setFormData(prev => ({ ...prev, barcode: scannedBarcode }));
-        setIsScannerOpen(false);
+        setIsBarcodeScannerOpen(false);
+    };
+
+    const handlePhotoTaken = (imageDataUrl: string) => {
+        setImagePreview(imageDataUrl);
+        setFormData(prev => ({ ...prev, imageUrl: imageDataUrl }));
+        setIsCameraOpen(false);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -99,11 +107,21 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, categories
                         </div>
                          <div>
                             <label htmlFor="price" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Selling Price</label>
-                            <input type="number" name="price" id="price" value={formData.price} onChange={handleChange} required min="0" step="0.01" className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                            <div className="relative">
+                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                    <span className="text-slate-500 sm:text-sm">{storeSettings.currency.symbol}</span>
+                                </div>
+                                <input type="number" name="price" id="price" value={formData.price} onChange={handleChange} required min="0" step="0.01" className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 pl-7" />
+                            </div>
                         </div>
                          <div>
                             <label htmlFor="costPrice" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Cost Price</label>
-                            <input type="number" name="costPrice" id="costPrice" value={formData.costPrice} onChange={handleChange} required min="0" step="0.01" className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                            <div className="relative">
+                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                    <span className="text-slate-500 sm:text-sm">{storeSettings.currency.symbol}</span>
+                                </div>
+                                <input type="number" name="costPrice" id="costPrice" value={formData.costPrice} onChange={handleChange} required min="0" step="0.01" className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 pl-7" />
+                            </div>
                         </div>
                         <div>
                             <label htmlFor="unit" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Unit</label>
@@ -115,16 +133,16 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, categories
                         <div>
                             <label htmlFor="barcode" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Barcode</label>
                             <div className="relative">
-                                <input type="text" name="barcode" id="barcode" value={formData.barcode} onChange={handleChange} required className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 pr-10" />
+                                <input type="text" name="barcode" id="barcode" value={formData.barcode} onChange={handleChange} required className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 pr-12" />
                                 <button
                                     type="button"
-                                    onClick={() => setIsScannerOpen(true)}
-                                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-indigo-500"
-                                    aria-label="Scan barcode with camera"
+                                    onClick={() => setIsBarcodeScannerOpen(true)}
+                                    className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-indigo-500 transition-colors"
+                                    aria-label="Scan barcode"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                                     </svg>
                                 </button>
                             </div>
@@ -156,8 +174,8 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, categories
                                     alt="Preview" 
                                     className="h-20 w-20 rounded-md object-cover bg-slate-200 dark:bg-slate-700"
                                 />
-                                <div>
-                                    <input 
+                                <div className="flex flex-wrap gap-2">
+                                     <input 
                                         type="file" 
                                         id="image-upload" 
                                         accept="image/png, image/jpeg, image/webp" 
@@ -166,10 +184,24 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, categories
                                     />
                                     <label 
                                         htmlFor="image-upload"
-                                        className="cursor-pointer rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-1.5 px-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-600"
+                                        className="cursor-pointer rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-1.5 px-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-600 flex items-center gap-2"
                                     >
-                                        <span>Change</span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                        </svg>
+                                        <span>Upload File</span>
                                     </label>
+                                     <button
+                                        type="button"
+                                        onClick={() => setIsCameraOpen(true)}
+                                        className="cursor-pointer rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-1.5 px-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-600 flex items-center gap-2"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                        <span>Use Camera</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -180,13 +212,19 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, categories
                         <button type="submit" className="px-6 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors">Save Product</button>
                     </div>
                 </form>
+                {isBarcodeScannerOpen && (
+                    <BarcodeScanner
+                        onScan={handleBarcodeScanSuccess}
+                        onClose={() => setIsBarcodeScannerOpen(false)}
+                    />
+                )}
+                {isCameraOpen && (
+                    <CameraCapture
+                        onCapture={handlePhotoTaken}
+                        onClose={() => setIsCameraOpen(false)}
+                    />
+                )}
             </div>
-            {isScannerOpen && (
-                <BarcodeScanner
-                    onScan={handleBarcodeScanned}
-                    onClose={() => setIsScannerOpen(false)}
-                />
-            )}
         </div>
     );
 };

@@ -1,4 +1,4 @@
-import { Product, Category, Supplier, Customer, StoreSettings, User, Discount, ActivityLog, TimeClockEntry } from './types';
+import { Product, Category, Supplier, Customer, StoreSettings, User, Discount, ActivityLog, TimeClockEntry, Order } from './types';
 
 export const PIN_LENGTH = 4;
 
@@ -48,30 +48,6 @@ export const MOCK_CUSTOMERS: Customer[] = [
     { id: 'cust-002', name: 'Jane Smith', phone: '555-5678', email: 'jane.smith@example.com' },
 ];
 
-export const CURRENCIES = [
-    { code: 'USD', symbol: '$', name: 'US Dollar', symbolBefore: true },
-    { code: 'EUR', symbol: '€', name: 'Euro', symbolBefore: false },
-    { code: 'JPY', symbol: '¥', name: 'Japanese Yen', symbolBefore: true },
-    { code: 'GBP', symbol: '£', name: 'British Pound', symbolBefore: true },
-    { code: 'AUD', symbol: '$', name: 'Australian Dollar', symbolBefore: true },
-    { code: 'CAD', symbol: '$', name: 'Canadian Dollar', symbolBefore: true },
-    { code: 'CHF', symbol: 'CHF', name: 'Swiss Franc', symbolBefore: true },
-    { code: 'CNY', symbol: '¥', name: 'Chinese Yuan', symbolBefore: true },
-    { code: 'INR', symbol: 'Rs', name: 'Indian Rupee', symbolBefore: true },
-    { code: 'KWD', symbol: 'KD', name: 'Kuwaiti Dinar', symbolBefore: true },
-];
-
-export const RECEIPT_FONTS = [
-    { name: 'Courier New (monospace)', value: "'Courier New', Courier, monospace" },
-    { name: 'Lucida Console (monospace)', value: "'Lucida Console', Monaco, monospace" },
-    { name: 'Consolas (monospace)', value: "Consolas, 'Lucida Console', monospace" },
-    { name: 'Roboto (sans-serif)', value: "'Roboto', sans-serif" },
-    { name: 'Arial (sans-serif)', value: "Arial, 'Helvetica Neue', Helvetica, sans-serif" },
-    { name: 'Verdana (sans-serif)', value: "Verdana, Geneva, sans-serif" },
-    { name: 'Times New Roman (serif)', value: "'Times New Roman', Times, serif" },
-    { name: 'Georgia (serif)', value: "Georgia, serif" },
-];
-
 export const MOCK_STORE_SETTINGS: StoreSettings = {
     storeName: 'Yazh Shop',
     storeAddressLine1: '123 Market St',
@@ -83,13 +59,29 @@ export const MOCK_STORE_SETTINGS: StoreSettings = {
     storeLogoUrl: '',
     taxRate: 0.08, // 8%
     isTaxEnabled: true,
+    currency: { code: 'INR', name: 'Indian Rupee', symbol: 'Rs' },
+    receiptHeaderText: 'THANK YOU FOR YOUR PURCHASE!',
+    receiptFooterText: 'Please come again!\nReturns accepted within 14 days with receipt.',
     showLogoOnInvoice: true,
-    currency: 'KWD',
-    printerSettings: {
-        paperWidth: '80mm',
-        copies: 1,
-        printAfterSale: true,
-        fontFamily: "'Courier New', Courier, monospace",
+    showAddressOnInvoice: true,
+    showCashierOnInvoice: true,
+    showCustomerOnInvoice: true,
+    showBarcodeOnInvoice: true,
+    invoiceNumberPrefix: 'INV-',
+    nextInvoiceNumber: 1001,
+    fontSettings: {
+        fontFamily: 'Roboto Mono',
+        fontSize: 'medium',
+        isBold: false,
+        isItalic: false,
+        textColor: '#1e293b', // slate-800
+        textColorDark: '#f1f5f9', // slate-100
+    },
+    cartLabels: {
+      subtotal: 'Subtotal',
+      discount: 'Discount',
+      tax: 'Tax ({rate}%)',
+      total: 'Total',
     },
 };
 
@@ -122,4 +114,26 @@ export const ROLE_PERMISSIONS: Record<User['role'], string[]> = {
         'Cannot access management settings.',
         'Cannot process refunds.'
     ]
+};
+
+export const MOCK_ORDER_FOR_PREVIEW: Order = {
+    id: 'PREVIEW-1234',
+    date: new Date().toISOString(),
+    items: [
+        { ...MOCK_PRODUCTS[0], quantity: 2 }, // Organic Milk
+        { ...MOCK_PRODUCTS[4], quantity: 1.5 }, // Fuji Apples (1 lb)
+        { ...MOCK_PRODUCTS[7], quantity: 1 }, // Tomato Sauce
+    ],
+    subtotal: 14.35,
+    taxAmount: 1.03,
+    total: 13.88,
+    paymentMethod: 'Cash',
+    payments: [{ method: 'Cash', amount: 13.88 }],
+    customer: MOCK_CUSTOMERS[0],
+    userId: MOCK_USERS[2].id, // Cashier Chloe
+    status: 'completed',
+    appliedDiscount: {
+        name: 'Sample Discount',
+        amount: 1.50,
+    },
 };

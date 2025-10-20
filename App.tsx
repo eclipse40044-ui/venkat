@@ -1,6 +1,7 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Product, CartItem, Order, Category, Supplier, Customer, StoreSettings, User, Discount, ActivityLog, Payment, TimeClockEntry } from './types';
-import { MOCK_PRODUCTS, MOCK_CATEGORIES, MOCK_SUPPLIERS, MOCK_CUSTOMERS, MOCK_STORE_SETTINGS, MOCK_USERS, MOCK_DISCOUNTS, MOCK_ACTIVITY_LOGS, MOCK_TIME_CLOCK_ENTRIES, CURRENCIES } from './constants';
+import { MOCK_PRODUCTS, MOCK_CATEGORIES, MOCK_SUPPLIERS, MOCK_CUSTOMERS, MOCK_STORE_SETTINGS, MOCK_USERS, MOCK_DISCOUNTS, MOCK_ACTIVITY_LOGS, MOCK_TIME_CLOCK_ENTRIES } from './constants';
 import Header from './components/Header';
 import ProductList from './components/ProductList';
 import Cart from './components/Cart';
@@ -12,6 +13,7 @@ import OrdersView from './components/OrdersView';
 import BarcodeScanner from './components/BarcodeScanner';
 import LoginScreen from './components/LoginScreen';
 import ProductFilters from './components/ProductFilters';
+import { formatCurrency } from './utils';
 
 
 interface SplitBillModalProps {
@@ -19,11 +21,10 @@ interface SplitBillModalProps {
     paymentsMade: Payment[];
     onAddPayment: (method: string, amount: number) => void;
     onClose: () => void;
-    formatCurrency: (amount: number) => string;
-    currencySymbol: string;
+    storeSettings: StoreSettings;
 }
 
-const SplitBillModal: React.FC<SplitBillModalProps> = ({ totalAmount, paymentsMade, onAddPayment, onClose, formatCurrency, currencySymbol }) => {
+const SplitBillModal: React.FC<SplitBillModalProps> = ({ totalAmount, paymentsMade, onAddPayment, onClose, storeSettings }) => {
     const [amount, setAmount] = useState('');
     const amountInputRef = useRef<HTMLInputElement>(null);
 
@@ -62,14 +63,14 @@ const SplitBillModal: React.FC<SplitBillModalProps> = ({ totalAmount, paymentsMa
 
                 <div className="bg-slate-100 dark:bg-slate-700/50 p-4 rounded-lg mb-4 text-center">
                     <p className="text-sm text-slate-500 dark:text-slate-400">Total Due</p>
-                    <p className="text-4xl font-bold text-slate-800 dark:text-slate-100">{formatCurrency(totalAmount)}</p>
+                    <p className="text-4xl font-bold text-slate-800 dark:text-slate-100">{formatCurrency(totalAmount, storeSettings)}</p>
                 </div>
 
                 <div className="mb-4">
                     <label htmlFor="paymentAmount" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Amount to Pay</label>
                     <div className="relative mt-1">
                         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                            <span className="text-slate-500 sm:text-sm">{currencySymbol}</span>
+                            <span className="text-slate-500 sm:text-sm">{storeSettings.currency.symbol}</span>
                         </div>
                         <input
                             ref={amountInputRef}
@@ -98,7 +99,7 @@ const SplitBillModal: React.FC<SplitBillModalProps> = ({ totalAmount, paymentsMa
                 <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
                     <div className="flex justify-between text-lg font-semibold text-green-600 dark:text-green-400 mb-2">
                         <span>Remaining</span>
-                        <span>{formatCurrency(remainingAmount)}</span>
+                        <span>{formatCurrency(remainingAmount, storeSettings)}</span>
                     </div>
 
                     {paymentsMade.length > 0 && (
@@ -108,7 +109,7 @@ const SplitBillModal: React.FC<SplitBillModalProps> = ({ totalAmount, paymentsMa
                                 {paymentsMade.map((p, i) => (
                                     <li key={i} className="flex justify-between p-1 bg-slate-50 dark:bg-slate-700 rounded">
                                         <span>{p.method}</span>
-                                        <span className="font-medium">{formatCurrency(p.amount)}</span>
+                                        <span className="font-medium">{formatCurrency(p.amount, storeSettings)}</span>
                                     </li>
                                 ))}
                             </ul>
@@ -161,7 +162,16 @@ function useLocalStorageState<T>(key: string, defaultValue: T): [T, React.Dispat
     const [state, setState] = useState<T>(() => {
         try {
             const item = window.localStorage.getItem(key);
-            return item ? JSON.parse(item) : defaultValue;
+            if (item) {
+                const parsedItem = JSON.parse(item);
+                // For objects (like settings), merge with defaults to ensure all keys exist.
+                // This prevents crashes when the app is updated with new settings properties.
+                if (typeof defaultValue === 'object' && defaultValue !== null && !Array.isArray(defaultValue)) {
+                    return { ...defaultValue, ...parsedItem };
+                }
+                return parsedItem;
+            }
+            return defaultValue;
         } catch (error) {
             console.warn(`Error reading localStorage key “${key}”:`, error);
             return defaultValue;
@@ -212,27 +222,8 @@ const App: React.FC = () => {
     const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [productViewMode, setProductViewMode] = useState<'grid' | 'list'>('grid');
     const [activeCategoryId, setActiveCategoryId] = useState<string>('all');
-    const [stockStatusFilter, setStockStatusFilter] = useState<string>('all');
+    const [stockStatusFilter, setStockStatusFilter] = useState<string>('inStock');
     const [splitOrderDetails, setSplitOrderDetails] = useState<SplitOrderDetails | null>(null);
-    const [autoPrintNextInvoice, setAutoPrintNextInvoice] = useState(false);
-
-    const currencyInfo = useMemo(() => {
-        return CURRENCIES.find(c => c.code === storeSettings.currency) || CURRENCIES[0];
-    }, [storeSettings.currency]);
-
-    const formatCurrency = useMemo(() => (amount: number): string => {
-        const formattedAmount = new Intl.NumberFormat(undefined, {
-            style: 'decimal',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        }).format(amount);
-        
-        if (currencyInfo.symbolBefore) {
-            return `${currencyInfo.symbol}${formattedAmount}`;
-        }
-        return `${formattedAmount} ${currencyInfo.symbol}`;
-    }, [currencyInfo]);
-
 
     useEffect(() => {
         if (theme === 'dark') {
@@ -415,9 +406,7 @@ const App: React.FC = () => {
 
 
         const totalAfterDiscount = subtotal - discountAmount;
-        const taxAmount = storeSettings.isTaxEnabled && totalAfterDiscount > 0
-            ? totalAfterDiscount * storeSettings.taxRate
-            : 0;
+        const taxAmount = storeSettings.isTaxEnabled ? ((totalAfterDiscount > 0 ? totalAfterDiscount : 0) * storeSettings.taxRate) : 0;
         const total = totalAfterDiscount + taxAmount;
         
         return { subtotal, taxAmount, total, appliedDiscount, discountAmount };
@@ -431,8 +420,10 @@ const App: React.FC = () => {
                 ? { id: 'walk-in', name: 'Walk-in Customer', phone: walkInCustomerPhone.trim(), email: '' }
                 : undefined;
 
+            const newOrderId = `${storeSettings.invoiceNumberPrefix}${storeSettings.nextInvoiceNumber}`;
+
             const order: Order = {
-                id: `INV-${Date.now().toString().slice(-6)}`,
+                id: newOrderId,
                 date: new Date().toISOString(),
                 items: cartItems,
                 subtotal,
@@ -445,11 +436,9 @@ const App: React.FC = () => {
                 status: 'completed',
                 appliedDiscount,
             };
+            setStoreSettings(prev => ({ ...prev, nextInvoiceNumber: prev.nextInvoiceNumber + 1 }));
             setCurrentOrder(order);
             setShowInvoice(true);
-            if (storeSettings.printerSettings.printAfterSale) {
-                setAutoPrintNextInvoice(true);
-            }
         }
     };
     
@@ -470,7 +459,7 @@ const App: React.FC = () => {
                 const totalQuantity = currentOrder.items.reduce((sum, item) => sum + item.quantity, 0);
                 const detailsParts = [
                     `Order ID: ${currentOrder.id}`,
-                    `Total: ${formatCurrency(currentOrder.total)}`,
+                    `Total: ${formatCurrency(currentOrder.total, storeSettings)}`,
                     `Items: ${totalQuantity.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}`,
                     `Payment: ${currentOrder.paymentMethod}`
                 ];
@@ -480,7 +469,7 @@ const App: React.FC = () => {
                 }
 
                 if (currentOrder.appliedDiscount && currentOrder.appliedDiscount.amount > 0) {
-                    detailsParts.push(`Discount: "${currentOrder.appliedDiscount.name}" (-${formatCurrency(currentOrder.appliedDiscount.amount)})`);
+                    detailsParts.push(`Discount: "${currentOrder.appliedDiscount.name}" (-${formatCurrency(currentOrder.appliedDiscount.amount, storeSettings)})`);
                 }
 
                 logActivity('SALE', detailsParts.join('; '));
@@ -501,7 +490,6 @@ const App: React.FC = () => {
         }
         setShowInvoice(false);
         setCurrentOrder(null);
-        setAutoPrintNextInvoice(false); // Always reset on close
         if (view === 'pos') {
           handleClearCart();
         }
@@ -536,8 +524,10 @@ const App: React.FC = () => {
                 finalPayments[finalPayments.length - 1].amount -= totalOverpaid;
             }
     
+            const newOrderId = `${storeSettings.invoiceNumberPrefix}${storeSettings.nextInvoiceNumber}`;
+
             const order: Order = {
-                id: `INV-${Date.now().toString().slice(-6)}`,
+                id: newOrderId,
                 date: new Date().toISOString(),
                 items: cartItems,
                 subtotal, taxAmount, total,
@@ -548,12 +538,11 @@ const App: React.FC = () => {
                 status: 'completed',
                 appliedDiscount,
             };
+
+            setStoreSettings(prev => ({ ...prev, nextInvoiceNumber: prev.nextInvoiceNumber + 1 }));
             setCurrentOrder(order);
             setShowInvoice(true);
             setSplitOrderDetails(null);
-            if (storeSettings.printerSettings.printAfterSale) {
-                setAutoPrintNextInvoice(true);
-            }
         } else {
             setSplitOrderDetails({ ...splitOrderDetails, payments: newPayments });
         }
@@ -780,7 +769,7 @@ const App: React.FC = () => {
         setOrderHistory(prev =>
             prev.map(o => (o.id === orderId ? { ...o, status: 'refunded' } : o))
         );
-        const details = `Order ID: ${orderId}; Refunded Amount: ${formatCurrency(orderToRefund.total)}`;
+        const details = `Order ID: ${orderId}; Refunded Amount: ${formatCurrency(orderToRefund.total, storeSettings)}`;
         logActivity('REFUND', details);
 
         setProducts(prevProducts => {
@@ -799,7 +788,6 @@ const App: React.FC = () => {
     const handleReprintInvoice = (order: Order) => {
         setCurrentOrder(order);
         setShowInvoice(true);
-        setAutoPrintNextInvoice(false); // Ensure reprint doesn't auto-print
     };
     
     const handleExportData = () => {
@@ -911,12 +899,13 @@ const App: React.FC = () => {
                                     cartItems={cartItems} 
                                     viewMode={productViewMode}
                                     searchTerm={searchTerm}
-                                    formatCurrency={formatCurrency}
+                                    storeSettings={storeSettings}
                                 />
                             </div>
                             <aside>
                                 <Cart
                                     cartItems={cartItems}
+                                    storeSettings={storeSettings}
                                     discounts={discounts}
                                     appliedDiscountId={appliedDiscountId}
                                     onApplyDiscount={setAppliedDiscountId}
@@ -931,9 +920,6 @@ const App: React.FC = () => {
                                     onInitiateSplitBill={handleInitiateSplitBill}
                                     cartMode={cartMode}
                                     onSetCartMode={setCartMode}
-                                    formatCurrency={formatCurrency}
-                                    storeSettings={storeSettings}
-                                    currencySymbol={currencyInfo.symbol}
                                 />
                             </aside>
                         </div>
@@ -970,7 +956,6 @@ const App: React.FC = () => {
                         onDeleteTimeClockEntry={handleDeleteTimeClockEntry}
                         onExportData={handleExportData}
                         onImportData={handleImportData}
-                        formatCurrency={formatCurrency}
                     />
                 );
             case 'reports':
@@ -980,7 +965,7 @@ const App: React.FC = () => {
                         products={products}
                         categories={categories}
                         onReprint={handleReprintInvoice}
-                        formatCurrency={formatCurrency}
+                        storeSettings={storeSettings}
                     />
                 );
             case 'orders':
@@ -991,7 +976,7 @@ const App: React.FC = () => {
                         currentUser={currentUser}
                         onReprint={handleReprintInvoice}
                         onRefund={handleRefundOrder}
-                        formatCurrency={formatCurrency}
+                        storeSettings={storeSettings}
                     />
                 );
             default:
@@ -1034,8 +1019,7 @@ const App: React.FC = () => {
                     order={currentOrder}
                     storeSettings={storeSettings}
                     onClose={handleCloseInvoice}
-                    formatCurrency={formatCurrency}
-                    autoPrint={autoPrintNextInvoice}
+                    users={users}
                 />
             )}
 
@@ -1045,8 +1029,7 @@ const App: React.FC = () => {
                     paymentsMade={splitOrderDetails.payments}
                     onAddPayment={handleAddPartialPayment}
                     onClose={handleCancelSplitBill}
-                    formatCurrency={formatCurrency}
-                    currencySymbol={currencyInfo.symbol}
+                    storeSettings={storeSettings}
                 />
             )}
         </div>

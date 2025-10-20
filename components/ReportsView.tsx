@@ -1,13 +1,15 @@
+
 import React, { useState, useMemo } from 'react';
-import { Order, Product, Category } from '../types';
+import { Order, Product, Category, StoreSettings } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, Label } from 'recharts';
+import { formatCurrency } from '../utils';
 
 interface ReportsViewProps {
     orders: Order[];
     products: Product[];
     categories: Category[];
     onReprint: (order: Order) => void;
-    formatCurrency: (amount: number) => string;
+    storeSettings: StoreSettings;
 }
 
 type DateRange = 'month' | '30days' | 'all';
@@ -25,7 +27,7 @@ const SummaryCard: React.FC<{ title: string; value: string; icon: React.JSX.Elem
     </div>
 );
 
-const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories, onReprint, formatCurrency }) => {
+const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories, onReprint, storeSettings }) => {
     const [dateRange, setDateRange] = useState<DateRange>('month');
 
     const completedOrders = useMemo(() => orders.filter(o => o.status === 'completed'), [orders]);
@@ -175,7 +177,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories,
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                             <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
                                 <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Revenue</p>
-                                <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{formatCurrency(dailySalesData.totalRevenue)}</p>
+                                <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{formatCurrency(dailySalesData.totalRevenue, storeSettings)}</p>
                             </div>
                             <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
                                 <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Orders</p>
@@ -183,11 +185,11 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories,
                             </div>
                             <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
                                 <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Cash Sales</p>
-                                <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{formatCurrency(dailySalesData.cashRevenue)}</p>
+                                <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{formatCurrency(dailySalesData.cashRevenue, storeSettings)}</p>
                             </div>
                             <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
                                 <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">G Pay Sales</p>
-                                <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{formatCurrency(dailySalesData.gPayRevenue)}</p>
+                                <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{formatCurrency(dailySalesData.gPayRevenue, storeSettings)}</p>
                             </div>
                         </div>
                         
@@ -209,7 +211,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories,
                                             <td className="px-4 py-2 font-medium text-slate-900 dark:text-slate-100">{order.id}</td>
                                             <td className="px-4 py-2">{new Date(order.date).toLocaleTimeString()}</td>
                                             <td className="px-4 py-2">{order.items.length}</td>
-                                            <td className="px-4 py-2 text-right font-semibold">{formatCurrency(order.total)}</td>
+                                            <td className="px-4 py-2 text-right font-semibold">{formatCurrency(order.total, storeSettings)}</td>
                                             <td className="px-4 py-2 text-right">
                                                 <button onClick={() => onReprint(order)} className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">Print</button>
                                             </td>
@@ -242,10 +244,10 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories,
             ) : (
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                        <SummaryCard title="Total Revenue" value={formatCurrency(summaryData.totalRevenue)} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01" /></svg>} />
+                        <SummaryCard title="Total Revenue" value={formatCurrency(summaryData.totalRevenue, storeSettings)} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01" /></svg>} />
                         <SummaryCard title="Total Orders" value={summaryData.totalOrders.toLocaleString()} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>} />
                         <SummaryCard title="Items Sold" value={summaryData.totalItems.toLocaleString()} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>} />
-                        <SummaryCard title="Avg. Order Value" value={formatCurrency(summaryData.avgOrderValue)} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>} />
+                        <SummaryCard title="Avg. Order Value" value={formatCurrency(summaryData.avgOrderValue, storeSettings)} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>} />
                     </div>
                     
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-md">
@@ -254,8 +256,8 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories,
                             <LineChart data={salesByDateData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" className="dark:stroke-slate-700" />
                                 <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'rgb(100 116 139)' }} stroke="#64748b" className="dark:stroke-slate-500 dark:tick-fill-slate-400" />
-                                <YAxis tick={{ fontSize: 12, fill: 'rgb(100 116 139)' }} stroke="#64748b" tickFormatter={(value) => formatCurrency(value).replace(/\.\d{2,}$/, '')} className="dark:stroke-slate-500 dark:tick-fill-slate-400" />
-                                <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0' }} wrapperClassName="dark:!bg-slate-700 dark:!border-slate-600" formatter={(value: number) => formatCurrency(value)} />
+                                <YAxis tick={{ fontSize: 12, fill: 'rgb(100 116 139)' }} stroke="#64748b" tickFormatter={(value) => formatCurrency(value as number, storeSettings)} className="dark:stroke-slate-500 dark:tick-fill-slate-400" />
+                                <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0' }} wrapperClassName="dark:!bg-slate-700 dark:!border-slate-600" formatter={(value: number) => formatCurrency(value, storeSettings)} />
                                 <Legend wrapperStyle={{fontSize: "12px"}}/>
                                 <Line type="monotone" dataKey="sales" stroke="#4f46e5" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                             </LineChart>
@@ -281,7 +283,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories,
                                                 <td className="px-4 py-4 text-center font-medium text-slate-900 dark:text-slate-100">{p.rank}</td>
                                                 <th scope="row" className="px-4 py-4 font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">{p.name}</th>
                                                 <td className="px-4 py-4 text-right">{p.quantity.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}</td>
-                                                <td className="px-4 py-4 text-right font-semibold">{formatCurrency(p.sales)}</td>
+                                                <td className="px-4 py-4 text-right font-semibold">{formatCurrency(p.sales, storeSettings)}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -297,7 +299,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ orders, products, categories,
                                         <Pie data={categorySalesData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} fill="#8884d8">
                                             {categorySalesData.map((entry, index) => <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />)}
                                         </Pie>
-                                        <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0' }} wrapperClassName="dark:!bg-slate-700 dark:!border-slate-600" formatter={(value: number) => formatCurrency(value)} />
+                                        <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0' }} wrapperClassName="dark:!bg-slate-700 dark:!border-slate-600" formatter={(value: number) => formatCurrency(value, storeSettings)} />
                                         <Legend wrapperStyle={{fontSize: "12px"}}/>
                                     </PieChart>
                                 </ResponsiveContainer>

@@ -1,14 +1,15 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { Discount } from '../types';
+import { Discount, StoreSettings } from '../types';
 
 interface DiscountFormModalProps {
     discount: Discount | null;
     onClose: () => void;
     onSave: (discount: Discount) => void;
-    currencySymbol: string;
+    storeSettings: StoreSettings;
 }
 
-const DiscountFormModal: React.FC<DiscountFormModalProps> = ({ discount, onClose, onSave, currencySymbol }) => {
+const DiscountFormModal: React.FC<DiscountFormModalProps> = ({ discount, onClose, onSave, storeSettings }) => {
     const [formData, setFormData] = useState<Omit<Discount, 'id'>>({
         name: discount?.name || '',
         type: discount?.type || 'percentage',
@@ -52,7 +53,7 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({ discount, onClose
                             <label htmlFor="type" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Type</label>
                             <select name="type" id="type" value={formData.type} onChange={handleChange} className="w-full border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                                 <option value="percentage">Percentage (%)</option>
-                                <option value="fixed">Fixed Amount ({currencySymbol})</option>
+                                <option value="fixed">Fixed Amount ({storeSettings.currency.symbol})</option>
                             </select>
                         </div>
                         <div>
