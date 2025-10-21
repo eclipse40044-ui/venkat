@@ -374,7 +374,11 @@ const ManagementView: React.FC<ManagementViewProps> = (props) => {
                                     <option>Roboto Mono</option>
                                     <option>Source Code Pro</option>
                                     <option>Inconsolata</option>
+                                    <option>PT Mono</option>
+                                    <option>Ubuntu Mono</option>
                                     <option>Arial</option>
+                                    <option>Verdana</option>
+                                    <option>Times New Roman</option>
                                     <option>Courier New</option>
                                 </select>
                             </div>

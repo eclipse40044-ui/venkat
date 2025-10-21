@@ -15,6 +15,21 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, storeSettings, onClo
     const cashierName = users.find(u => u.id === userId)?.name || 'Unknown';
     const { fontSettings } = storeSettings;
 
+    const getFontStack = (fontFamily: string) => {
+        const sansSerifFonts = ['Arial', 'Verdana'];
+        const serifFonts = ['Times New Roman'];
+        if (sansSerifFonts.includes(fontFamily)) {
+            return `'${fontFamily}', sans-serif`;
+        }
+        if (serifFonts.includes(fontFamily)) {
+            return `'${fontFamily}', serif`;
+        }
+        return `'${fontFamily}', monospace`;
+    };
+    
+    const fontStack = getFontStack(fontSettings.fontFamily);
+
+
     const handlePrint = () => {
         window.print();
     };
@@ -26,7 +41,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, storeSettings, onClo
     }[fontSettings.fontSize || 'medium'];
 
     const invoiceDynamicStyles = {
-        fontFamily: `'${fontSettings.fontFamily}', monospace`,
+        fontFamily: fontStack,
         fontWeight: fontSettings.isBold ? '700' : '400',
         fontStyle: fontSettings.isItalic ? 'italic' : 'normal',
     };
@@ -52,7 +67,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, storeSettings, onClo
                         width: 100%;
                         background: white !important;
                         color: ${fontSettings.textColor} !important;
-                        font-family: '${fontSettings.fontFamily}', monospace !important;
+                        font-family: ${fontStack} !important;
                         font-weight: ${fontSettings.isBold ? 'bold' : 'normal'} !important;
                         font-style: ${fontSettings.isItalic ? 'italic' : 'normal'} !important;
                     }
